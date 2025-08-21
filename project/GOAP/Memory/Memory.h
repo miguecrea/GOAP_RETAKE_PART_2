@@ -73,7 +73,7 @@ public:
 	WorldMemory(WorldMemory& other) = delete;
 
 	// Access & lifecycle
-	static WorldMemory* Instance();
+	static WorldMemory * Instance();
 	static void Release();
 
 	// Main update loop

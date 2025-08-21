@@ -17,7 +17,6 @@ public:
 			m_Name = "HasSavedUpFood";
 			break;
 		case eItemType::MEDKIT:
-
 			m_Name = "HasSavedUpMedKits";
 			break;
 		default:

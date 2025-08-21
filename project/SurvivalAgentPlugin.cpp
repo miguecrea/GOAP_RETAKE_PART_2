@@ -3,6 +3,7 @@
 #include "IExamInterface.h"
 
 #include"GOAP/WorldStates/WorldStates.h"
+#include"GOAP/Memory/Memory.h"
 
 
 
@@ -29,6 +30,40 @@ void SurvivalAgentPlugin::Initialize(IBaseInterface* pInterface, PluginInfo& inf
 
 
 	m_WorldStates.push_back(std::make_unique<HasSavedUpItem>(false, eItemType::FOOD));
+	m_WorldStates.push_back(std::make_unique<HasSavedUpItem>(false, eItemType::MEDKIT));
+	m_WorldStates.push_back(std::make_unique<IsLoadedWithMedKits>(false));
+	m_WorldStates.push_back(std::make_unique<HasSavedWeaponsWithAcceptableAmmo>(false));
+	m_WorldStates.push_back(std::make_unique<HasVisitedAllSeenHouses>(false));
+	m_WorldStates.push_back(std::make_unique<HasWeaponState>(false));
+	m_WorldStates.push_back(std::make_unique<SafeFromEnemy>(false));
+	m_WorldStates.push_back(std::make_unique<HouseInViewState>(false));
+	m_WorldStates.push_back(std::make_unique<IsHungry>(false));
+	m_WorldStates.push_back(std::make_unique<IsInHouseState>(false));
+	m_WorldStates.push_back(std::make_unique<IsInPurgeZoneState>(false));
+
+	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::FOOD));
+	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::MEDKIT));
+	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::PISTOL));
+	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::SHOTGUN));
+
+	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::SHOTGUN));
+	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::PISTOL));
+	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::MEDKIT));
+	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::FOOD));
+
+	m_WorldStates.push_back(std::make_unique<RecentlyBittenState>(false));
+	m_WorldStates.push_back(std::make_unique<IsInventoryFull>(false));
+	m_WorldStates.push_back(std::make_unique<IsLowOnAmmo>(false));
+	m_WorldStates.push_back(std::make_unique<IsNearEnemy>(false));
+	m_WorldStates.push_back(std::make_unique<ZombieInViewState>(false));
+	m_WorldStates.push_back(std::make_unique<HasOpenInventorySlot>(false));
+
+
+
+
+
+
+
 	m_Planner = std::make_unique<Planner>(m_WorldStates);
 
 
@@ -142,11 +177,85 @@ SteeringPlugin_Output SurvivalAgentPlugin::UpdateSteering(float dt)
 {
 	auto steering = SteeringPlugin_Output();
 
-	//-----GOAP-------
+	std::cout << "Hello bro\n";
 
+	for (auto & state : m_WorldStates)
+	{
+		state->Update(dt, m_pInterface);
+	}
+
+	WorldMemory::Instance()->Refresh(dt, m_pInterface);
+
+
+
+	auto hasToSteer = m_Planner->CalculateAction(dt, steering, m_pInterface);
+	if (hasToSteer)
+	{
+		return steering;
+	}
+   
+
+
+	auto agentInfo = m_pInterface->Agent_GetInfo();
+	auto nextTargetPos = m_pInterface->NavMesh_GetClosestPathPoint(m_Target);
+	FOVStats stats = m_pInterface->FOV_GetStats();
+
+
+
+	auto vItemsInFOV = m_pInterface->GetItemsInFOV();
+
+	if (m_GrabItem)
+	{
+		ItemInfo item;
+		if (m_pInterface->GrabNearestItem(item))
+		{
+			m_pInterface->Inventory_AddItem(m_InventorySlot, item);
+		}
+	}
+
+	if (m_UseItem)
+	{
+		m_pInterface->Inventory_UseItem(m_InventorySlot);
+		ItemInfo item{};
+		m_pInterface->Inventory_GetItem(m_InventorySlot, item);
+		std::cout << "Item value: " << item.Value;
+	}
+
+	if (m_RemoveItem)
+	{
+		//Remove an item from a inventory slot
+		m_pInterface->Inventory_RemoveItem(m_InventorySlot);
+	}
+
+	if (m_DestroyItemsInFOV)
+	{
+		for (auto& item : vItemsInFOV)
+		{
+			m_pInterface->DestroyItem(item);
+		}
+	}
+
+	steering.LinearVelocity = nextTargetPos - agentInfo.Position; //Desired Velocity
+	steering.LinearVelocity.Normalize(); //Normalize Desired Velocity
+	steering.LinearVelocity *= agentInfo.MaxLinearSpeed; //Rescale to Max Speed
+
+	if (Distance(nextTargetPos, agentInfo.Position) < 2.f)
+	{
+		steering.LinearVelocity = Elite::ZeroVector2;
+	}
+
+	steering.AutoOrient = true;
+	steering.RunMode = m_CanRun;
+
+	m_GrabItem = false;
+	m_UseItem = false;
+	m_RemoveItem = false;
+	m_DestroyItemsInFOV = false;
 
 	return steering;
-	
+
+
+
 }
 
 void SurvivalAgentPlugin::Render(float dt) const
