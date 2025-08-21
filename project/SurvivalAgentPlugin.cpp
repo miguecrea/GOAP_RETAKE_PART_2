@@ -2,6 +2,9 @@
 #include "SurvivalAgentPlugin.h"
 #include "IExamInterface.h"
 
+#include"GOAP/WorldStates/WorldStates.h"
+
+
 
 
 using namespace std;
@@ -20,6 +23,20 @@ void SurvivalAgentPlugin::Initialize(IBaseInterface* pInterface, PluginInfo& inf
 	info.Student_Name = "Miguel";
 	info.Student_Class = "2DAEGD11E";
 	info.LB_Password = "ggchavaLES!";
+
+
+
+
+
+	m_WorldStates.push_back(std::make_unique<HasSavedUpItem>(false, eItemType::FOOD));
+	m_Planner = std::make_unique<Planner>(m_WorldStates);
+
+
+
+
+
+
+
 
 }
 
