@@ -31,6 +31,8 @@ const std::vector<std::unique_ptr<BaseWorldState>>& BaseAction::GetEffects() con
 	return m_Effects;
 }
 
+
+
 void BaseAction::SetWeight(float weight)
 {
 	m_Weight = weight;

@@ -31,10 +31,11 @@ public:
     const std::vector<std::unique_ptr<BaseWorldState>>& GetPreconditions() const;
     const std::vector<std::unique_ptr<BaseWorldState>>& GetEffects() const;
 
+    void SetGraphNodeIndex(int idx);
+
 protected:
     void SetWeight(float weight);
     void SetName(const std::string& name);
-    void SetGraphNodeIndex(int idx);
 
     void AddPrecondition(std::unique_ptr<BaseWorldState> state);
     void AddEffect(std::unique_ptr<BaseWorldState> state);

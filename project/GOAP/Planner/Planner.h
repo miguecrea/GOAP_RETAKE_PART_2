@@ -41,6 +41,8 @@ private:
 
 	std::unique_ptr<Graph> m_pGraph{};
 
+
+
 	std::string m_CurrentGoal;
 	std::string m_CurrentAction;
 	bool m_HadActionLastTick;
