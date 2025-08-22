@@ -44,8 +44,7 @@ Planner::Planner(std::vector<BaseWorldState*>* WorldStates):
        new HasVisitedAllSeenHouses(true)
     };
 
-    //
-
+    CreateGraph();
 
 }
 
@@ -55,13 +54,9 @@ Planner::~Planner()
 
 bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-	
-
     BaseWorldState * currentGoal = nullptr;
 
-    std::vector<GraphNode*> actions;
-
-
+    CurrentActionInfo currentActionInfo{};
 
     for (auto * goal : m_Goals)  //my gols 
     {
@@ -80,16 +75,15 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
                 m_AccomplishedGoals.erase(goal);
                 //
-                MakeGraph(goal);
+                currentActionInfo = ChooseCurrentAction(goal);
 
 
                 //create s aseries fo graph nodes 
 
                 //check is goal is achibvable 
-                actions = Dijkstra::FindPath(m_pGraph.get(), m_pGraph->GetNodeByIdx(0), m_pGraph->GetNodeByIdx(1));
+                //actions = Dijkstra::FindPath(m_pGraph.get(), m_pGraph->GetNodeByIdx(0), m_pGraph->GetNodeByIdx(1));
 
-
-                if (std::find(actions.begin(), actions.end(), m_pGraph->GetNodeByIdx(1)) != actions.end())
+                if (currentActionInfo.IsValid())
                 {
                     currentGoal = goal;
 
@@ -100,9 +94,9 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
                         std::cout << "\n\n Current Goal: " << goal->m_Name << '\n' << "Action Plan:\n";
 
-                        for (size_t i = 1; i + 1 < actions.size(); ++i)
+                        for (size_t i = 0; i < currentActionInfo.PathInfo->Path.size(); ++i)
                         {
-                            std::cout << actions[i]->GetDescription() << '\n';
+                            std::cout << currentActionInfo.PathInfo->Path[i]->GetDescription() << '\n';
 
                         }
 
@@ -111,13 +105,11 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
                     break;  //try again until find a goal that can be acomplished 
                     //oh we found a goal that can be accomplished 
                 }
+                
             }
         }
         if (currentGoal) break;
     }
-
-
-
 
     //no 
 
@@ -127,15 +119,14 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
         std::cout << "No Goal Found\n";
     }
 
-
-
     BaseAction * currentAction = nullptr;
 
     //accomplsih the current goal we got the Actions saved 
 
-    if (!actions.empty() && currentGoal)
+    if (currentActionInfo.IsValid() &&
+        currentGoal)
     {
-        const std::string& actionDesc = actions[1]->GetDescription();
+        const std::string& actionDesc = currentActionInfo.PathInfo->Path.front()->GetDescription();
 
 
         if (m_CurrentAction != actionDesc)
@@ -145,17 +136,7 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
         }
 
 
-        //actions  that can be doine 
-
-        //looks for that one action
-        for (auto* action : m_Actions)
-        {
-            if (action->GetName() == actionDesc)
-            {
-                currentAction = action;
-                break;
-            }
-        }
+        currentAction = currentActionInfo.CurrentAction;
 
         m_HadActionLastTick = true;
     }
@@ -173,26 +154,89 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
 }
 
-void Planner::MakeGraph(BaseWorldState * stateToAchieve)
+void Planner::CreateGraph()
+{ 
+    //
+    for (BaseAction* action : m_Actions)
+    {
+        action->SetGraphNodeIndex(m_pGraph->AddNode());
+        m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->SetDescription(action->GetName());
+        m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->Weight = action->GetWeight();
+    }
+
+    // If Action A produces an effect that satisfies a precondition for Action B, then Action B can logically follow Action A.
+
+  // Add a connection from A to B.
+   //this is done for every action 
+
+   // Interconnect actions by effects <-> preconditions
+    for (BaseAction* action : m_Actions)
+    {
+
+        //[reconditions 
+        for (BaseWorldState* actionPreCondition : action->GetPreconditions())
+        {
+            for (BaseAction* otherAction : m_Actions) //loop one action with otehr action
+            {
+                if (otherAction == action) continue;
+
+                for (auto* otherActionEffectOnWorld : otherAction->GetEffects())
+                {
+                    if (otherActionEffectOnWorld->m_Name == actionPreCondition->m_Name &&
+                        otherActionEffectOnWorld->m_Predicate == actionPreCondition->m_Predicate)
+                    {
+                        m_pGraph->AddConnection(otherAction->GetGraphNodeIndex(), action->GetGraphNodeIndex(), otherAction->GetWeight());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    std::string currentKey{};
+    float currentValue{};
+    PathInfo currentPathInfo{};
+
+    for (size_t idx = 0; idx < m_Actions.size(); idx++)
+    {
+        for (size_t otherIdx = 0; otherIdx < m_Actions.size(); otherIdx++)
+        {
+            currentKey = m_Actions[idx]->GetName() + m_Actions[otherIdx]->GetName();
+            currentPathInfo.Path = Dijkstra::FindPath(m_pGraph.get(), m_pGraph->GetNodeByIdx(idx), m_pGraph->GetNodeByIdx(otherIdx));
+
+            if (!currentPathInfo.Path.empty() && // path is not empty 
+                std::find(
+                    currentPathInfo.Path.begin(),
+                    currentPathInfo.Path.end(), 
+                    m_pGraph->GetNodeByIdx(otherIdx))
+                != currentPathInfo.Path.end()) // current path contains end node
+            {
+                currentValue = 0;
+                for (size_t i = 0; i < currentPathInfo.Path.size(); i++)
+                {
+                    currentValue += currentPathInfo.Path[i]->Weight;
+                }
+
+                currentPathInfo.TotalPathCost = currentValue;
+
+                m_StartEndNodeString_To_Path[currentKey] = currentPathInfo;
+            }
+        }
+    }
+
+    
+}
+
+Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateToAchieve)
 {
-
-    //reset the gragh
-    m_pGraph->Reset();
-
-    int startNode = m_pGraph->AddNode("startNode");
-    int endNode = m_pGraph->AddNode("endNode");
+    std::vector<BaseAction *> startNodes{};
+    std::vector<BaseAction *> endNodes{};
 
     //  All possible Actions we can take 
     //loop over that
 
     for (BaseAction * action : m_Actions)
     {
-        action->SetGraphNodeIndex(m_pGraph->AddNode());
-
-
-
-        //set the name 
-        m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->SetDescription(action->GetName());
         bool conditionsMet = std::all_of(action->GetPreconditions().begin(), action->GetPreconditions().end(), [this](BaseWorldState  * pre)
             {
 
@@ -213,19 +257,13 @@ void Planner::MakeGraph(BaseWorldState * stateToAchieve)
             }
 
             //if preconditions 
-
-
-
-
-
-
         );
 
 
         //if preconditionsMet is true, we can use this action immediately, so we connect it from the startNode:
 
         if (conditionsMet)  // cost is still 0 
-            m_pGraph->AddConnection(startNode, action->GetGraphNodeIndex(), 0); //add connection
+            startNodes.push_back(action); //add connection
 
         // Check if action achieves goal   //goal is on top 
 
@@ -241,41 +279,35 @@ void Planner::MakeGraph(BaseWorldState * stateToAchieve)
 
         //dont a I have to meet the condition if 
         if (achievesGoal)                 //
-            m_pGraph->AddConnection(action->GetGraphNodeIndex(), endNode, 0);
+            endNodes.push_back(action);
 
 
 
     }
-
-
-
-    // If Action A produces an effect that satisfies a precondition for Action B, then Action B can logically follow Action A.
-
-   // Add a connection from A to B.
-    //this is done for every action 
-
-    // Interconnect actions by effects <-> preconditions
-    for (BaseAction  * action : m_Actions)
+ 
+    std::string currentKey{};
+    CurrentActionInfo currentActionInfo{};
+    float currentHighestValue = INFINITY;
+    
+    for (size_t startNodeIdx = 0; startNodeIdx < startNodes.size(); startNodeIdx++)
     {
-
-        //[reconditions 
-        for (BaseWorldState * actionPreCondition : action->GetPreconditions())
+        for (size_t endNodeIdx = 0; endNodeIdx < endNodes.size(); endNodeIdx++)
         {
-            for (BaseAction * otherAction : m_Actions) //loop one action with otehr action
-            {
-                if (otherAction == action) continue;
+            currentKey = startNodes[startNodeIdx]->GetName() + endNodes[endNodeIdx]->GetName();
 
-                for (auto* otherActionEffectOnWorld : otherAction->GetEffects())
+            auto& currentPair = m_StartEndNodeString_To_Path.find(currentKey);
+
+            if (currentPair != m_StartEndNodeString_To_Path.end()) // contains
+            {
+                if (currentPair->second.TotalPathCost < currentHighestValue)
                 {
-                    if (otherActionEffectOnWorld->m_Name == actionPreCondition->m_Name &&
-                        otherActionEffectOnWorld->m_Predicate == actionPreCondition->m_Predicate)
-                    {
-                        m_pGraph->AddConnection(otherAction->GetGraphNodeIndex(), action->GetGraphNodeIndex(), otherAction->GetWeight());
-                        break;
-                    }
+                    currentHighestValue = currentPair->second.TotalPathCost;
+                    currentActionInfo.CurrentAction = startNodes[startNodeIdx];
+                    currentActionInfo.PathInfo = &currentPair->second;
                 }
             }
         }
     }
- 
+
+    return currentActionInfo;
 }

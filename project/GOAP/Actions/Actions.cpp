@@ -161,6 +161,7 @@ GoToNearestSeenGun::GoToNearestSeenGun()
 	SetName(typeid(this).name());
 
 	AddPrecondition(new KnowsWeaponLocation(true));
+	AddPrecondition(new NextToWeapon(false));
 	AddEffect(new NextToWeapon(true));
 }
 
@@ -221,6 +222,7 @@ GoToNearestSeenMedKit::GoToNearestSeenMedKit()
 	SetName(typeid(this).name());
 
 	AddPrecondition(new KnowsMedKitLocation(true));
+	AddPrecondition(new NextToMedKit(false));
 	AddEffect(new NextToMedKit(true));
 }
 

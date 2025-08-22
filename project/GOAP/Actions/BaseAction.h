@@ -44,7 +44,7 @@ protected:
 
 private:
     std::string m_Name{};
-    float m_Weight{};
+    float m_Weight{1.f};
     int m_GraphNodeIdx{};
 };
 

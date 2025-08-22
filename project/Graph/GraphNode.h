@@ -8,7 +8,7 @@ public:
 	GraphNode(int idx);
 	int GetIndex() { return m_Index; }
 	void SetIndex(int idx) { m_Index = idx; }
-
+	float Weight{};
 	void SetDescription(const std::string& desc) { m_Description = desc; }
 	const std::string & GetDescription() const { return m_Description; }
 private:

@@ -12,6 +12,7 @@
 
 #include "../../Graph/Graph.h"
 #include "unordered_set"
+#include "unordered_map"
 
 class IExamInterface;
 class WorldStates;
@@ -32,7 +33,28 @@ public:
 
 private:
 
-	void MakeGraph(BaseWorldState * stateToAchiev);
+	struct PathInfo {
+
+		float TotalPathCost{};
+		std::vector<GraphNode*> Path;
+
+	};
+
+	struct CurrentActionInfo {
+
+		BaseAction* CurrentAction{ nullptr };
+		PathInfo* PathInfo{ nullptr };
+
+		bool IsValid()const 
+		{
+			return CurrentAction && PathInfo && !PathInfo->Path.empty();
+		}
+	};
+
+	void CreateGraph();
+
+	CurrentActionInfo ChooseCurrentAction(BaseWorldState * stateToAchiev);
+
 
 
 	std::vector<BaseWorldState*> * m_pWorldStates;
@@ -42,7 +64,11 @@ private:
 
 	std::unique_ptr<Graph> m_pGraph{};
 
+	//Just for debug purposes --> all I really need is total path cost
+	
+	std::unordered_map<std::string, PathInfo> m_StartEndNodeString_To_Path;
 
+	
 
 	std::string m_CurrentGoal;
 	std::string m_CurrentAction;
