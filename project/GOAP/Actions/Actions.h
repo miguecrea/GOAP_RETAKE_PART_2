@@ -26,7 +26,7 @@ private:
 class GoToNearestSeenItem final : public BaseAction
 {
 public:
-	GoToNearestSeenItem(const eItemType& Item);
+	GoToNearestSeenItem(const eItemType & Item);
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
 	eItemType m_DesiredItem;

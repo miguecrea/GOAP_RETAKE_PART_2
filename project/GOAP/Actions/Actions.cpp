@@ -31,8 +31,7 @@ bool ConsumeSavedFood::Execute(float elapsedSec, SteeringPlugin_Output& steering
 
 	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
 	{
-		if (iFace->Inventory_GetItem(i, currentItem) &&
-			currentItem.Type == eItemType::FOOD)
+		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::FOOD)
 		{
 			agentInfo.Energy += currentItem.Value;
 
@@ -56,8 +55,7 @@ EvadeEnemy::EvadeEnemy()
 {
 	SetName(typeid(this).name());
 
-	AddPrecondition(std::make_unique<IsNearEnemy>(true));
-	AddPrecondition(std::make_unique<IsLowOnAmmo>(true));
+	AddPrecondition(std::make_unique<HasWeaponState>(false));
 
 
 	AddEffect(std::make_unique<SafeFromEnemy>(true));
@@ -248,3 +246,119 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 	return true;
 }
 
+ShootEnemy::ShootEnemy()
+{
+    SetName(typeid(this).name());
+
+	AddPrecondition(std::make_unique<HasWeaponState>(true));
+	AddPrecondition(std::make_unique<ZombieInViewState>(true));
+
+	AddEffect(std::make_unique<ZombieInViewState>(false));
+}
+
+bool ShootEnemy::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
+{
+
+	auto agent = iFace->Agent_GetInfo();
+
+	std::vector<EnemyInfo> enemiesInfo = iFace->GetEnemiesInFOV();
+
+	if (enemiesInfo.empty())
+	{
+		return false;
+	}
+
+	Elite::Vector2 targetPosition = enemiesInfo[0].Location;
+
+	iFace->Draw_Circle(targetPosition, 2, Elite::Vector3(1, 0, 0), 0.9f);
+
+	Elite::Vector2 delta{ targetPosition - agent.Position };
+	delta.Normalize();
+
+	float targetAngle = std::atan2(delta.y, delta.x);
+	float deltaRight{ targetAngle - agent.Orientation };
+	float deltaLeft{ agent.Orientation - (targetAngle + (2.f * (float)M_PI)) };
+	float chosenDelta = abs(deltaRight) < abs(deltaLeft) ? deltaRight : deltaLeft;
+
+	ItemInfo currentItem{};
+	int slotToUse{ -1 };
+
+	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, currentItem))
+		{
+			if (currentItem.Type == eItemType::SHOTGUN)
+			{
+				slotToUse = i;
+				break;
+			}
+			else if (currentItem.Type == eItemType::PISTOL)
+			{
+				slotToUse = i;
+			}
+		}
+
+	}
+
+	bool canShootPistol{ currentItem.Type == eItemType::PISTOL && abs(chosenDelta) <= Elite::ToRadians(m_AcceptableRangeToShootIfPistol) };
+	bool canShootShotgun{ currentItem.Type == eItemType::SHOTGUN && abs(chosenDelta) <= Elite::ToRadians(m_AcceptableRangeToShootIfShotGun) };
+
+	if (slotToUse >= 0 &&
+		(canShootPistol || canShootShotgun))
+	{
+		iFace->Inventory_UseItem(slotToUse);
+	}
+
+	steeringOutput.AutoOrient = false;
+	steeringOutput.AngularVelocity = chosenDelta / elapsedSec;
+	return true;
+	
+}
+
+PickUpItem::PickUpItem(const eItemType & Item):
+	m_DesiredItem{ Item }
+{
+
+	AddPrecondition(std::make_unique<NextToItem>(true, m_DesiredItem));
+	AddEffect(std::make_unique<HasSavedUpItem>(true, m_DesiredItem));
+
+}
+
+bool PickUpItem::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
+{
+	
+	std::vector<ItemInfo> itemInfos = iFace->GetItemsInFOV();
+
+	ItemInfo currentItem{};
+	bool pickedUp = false;
+
+	for (const auto& itemInfo : itemInfos)
+	{
+		if ((itemInfo.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
+		{
+			pickedUp = false;
+
+			switch (itemInfo.Type) {
+
+			case eItemType::FOOD:
+
+				if (!iFace->Inventory_GetItem(m_FoodSlot, currentItem))
+				{
+					iFace->GrabItem(itemInfo);
+					iFace->Inventory_AddItem(m_FoodSlot, itemInfo);
+					pickedUp = true;
+				}
+				break;
+
+			default:
+				break;
+			}
+
+			if (pickedUp)
+			{
+				WorldMemory::Instance()->ForgetItem(itemInfo);
+			}
+		}
+	}
+	return false;
+}
