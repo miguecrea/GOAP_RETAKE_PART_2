@@ -9,9 +9,8 @@ class WorldUtils
 {
 public:
 	// Inventory helpers
-	static bool InventoryContains(IExamInterface* iFace, eItemType type, int minValue = 0)
+	static bool InventoryContains(IExamInterface * iFace, eItemType type, int minValue = 0)
 	{
-
 		ItemInfo item{};
 		for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
 		{
@@ -48,7 +47,7 @@ public:
 	}
 
 
-	static bool HasOpenSlot(IExamInterface* iFace)
+	static bool HasOpenSlot(IExamInterface * iFace)
 	{
 
 		ItemInfo item{};
@@ -60,6 +59,24 @@ public:
 		}
 		return false;
 	}
+
+	static int GetFirstOpenSlot(IExamInterface * iFace)
+	{
+
+		ItemInfo item{};
+
+		for (UINT InventoryIndex = 0; InventoryIndex < iFace->Inventory_GetCapacity(); InventoryIndex++)
+		{
+			if (!iFace->Inventory_GetItem(InventoryIndex,item))
+			{
+				return InventoryIndex;
+			}
+		}
+		return 4;
+	}
+
+
+
 
 
 	static bool IsInventoryFull(IExamInterface* iFace)

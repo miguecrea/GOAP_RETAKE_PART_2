@@ -4,9 +4,9 @@
 
 #include <IExamInterface.h>
 
-WorldMemory* WorldMemory::s_Instance = nullptr;
+WorldMemory * WorldMemory::s_Instance = nullptr;
 
-WorldMemory* WorldMemory::Instance()
+WorldMemory * WorldMemory::Instance()
 {
     if (!s_Instance)
         s_Instance = new WorldMemory();

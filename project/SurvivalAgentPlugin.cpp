@@ -51,7 +51,6 @@ void SurvivalAgentPlugin::Initialize(IBaseInterface* pInterface, PluginInfo& inf
 	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::MEDKIT));
 	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::FOOD));
 
-	m_WorldStates.push_back(std::make_unique<RecentlyBittenState>(false));
 	m_WorldStates.push_back(std::make_unique<IsInventoryFull>(false));
 	m_WorldStates.push_back(std::make_unique<IsLowOnAmmo>(false));
 	m_WorldStates.push_back(std::make_unique<IsNearEnemy>(false));

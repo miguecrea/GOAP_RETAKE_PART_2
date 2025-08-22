@@ -13,6 +13,16 @@ private:
 	int m_MaxEnergy = 10;
 };
 
+class ConsumeSavedMedKit final : public BaseAction
+{
+public:
+	ConsumeSavedMedKit();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+
+private:
+	int m_MaxHealth = 10;
+};
+
 class EvadeEnemy final : public BaseAction
 {
 public:
@@ -31,6 +41,28 @@ public:
 
 	eItemType m_DesiredItem;
 };
+
+class PickUpItem final : public BaseAction
+{
+public:
+	PickUpItem(const eItemType & Item);
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+
+	eItemType m_DesiredItem;
+
+
+};
+
+
+
+class RunFromPurge final : public BaseAction
+{
+public:
+	RunFromPurge();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+};
+
+
 
 class Wander final : public BaseAction
 {
@@ -51,3 +83,36 @@ private:
 	float m_OptimalDistanceFromPurge = 30.f;
 };
 
+
+class ShootEnemy final : public BaseAction
+{
+public:
+	ShootEnemy();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+
+private:
+	float m_AcceptableRangeToShootIfShotGun{ 10 };
+	float m_AcceptableRangeToShootIfPistol{ 10 };
+};
+
+
+
+class LeaveHouse final : public BaseAction
+{
+public:
+	LeaveHouse();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+};
+
+
+
+class MoveIntoHouse final : public BaseAction
+{
+public:
+	MoveIntoHouse();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+
+private:
+	float m_PermittedDistanceFromHouseCenter{ 1 };
+	float m_PermittedDistanceFromHouseCorners{ 4 };
+};
