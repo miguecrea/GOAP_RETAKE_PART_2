@@ -623,7 +623,7 @@ bool ShootEnemyInView::Execute(float elapsedSec, SteeringPlugin_Output& steering
 	{
 		if (iFace->Inventory_GetItem(i, currentItem))
 		{
-			if (currentItem.Type == eItemType::SHOTGUN)
+			if (currentItem.Type == eItemType::SHOTGUN && currentItem.Value > 0.f)
 			{
 				slotToUse = i;
 				break;
