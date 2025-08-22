@@ -1,301 +1,299 @@
-
 #include "../../stdafx.h"
 #include "Memory.h"
 
 #include <IExamInterface.h>
 
-WorldMemory * WorldMemory::s_Instance = nullptr;
+#include "SeenPurge.h"
 
-WorldMemory * WorldMemory::Instance()
+WorldMemory* WorldMemory::m_Instance = nullptr;
+
+WorldMemory* WorldMemory::Instance()
 {
-    if (!s_Instance)
-        s_Instance = new WorldMemory();
-    return s_Instance;
+	if (m_Instance == nullptr)
+		m_Instance = new WorldMemory();
+	return m_Instance;
 }
 
-void WorldMemory::Release()
+void WorldMemory::Destroy()
 {
-    delete s_Instance;
-    s_Instance = nullptr;
+	delete m_Instance;
+	m_Instance = nullptr;
 }
 
-// ----------------- HOUSE MANAGEMENT -----------------
-bool WorldMemory::RegisterHouse(const HouseInfo& house)
+bool WorldMemory::AddHouseToMemory(const HouseInfo& hi)
 {
-    if (HasSeenHouse(house))
-        return false;
-
-    m_KnownHouses.emplace_back(house);
-    m_UnvisitedHouses.push_back(UnvisitedHouse{ house });
-    return true;
+	if (IsHouseInMemory(hi)) return false;
+	m_HousesSeen.push_back(hi);
+	m_HousesToVisit.push_back(UnvisitedHouse{ hi });
+	return true;
 }
 
-bool WorldMemory::HasSeenHouse(const HouseInfo& house) const
+bool WorldMemory::IsHouseInMemory(const HouseInfo& hi)
 {
-    if (house.Size == Elite::Vector2{ 0,0 })
-        return true; // invalid data
+	if (hi.Size == Elite::Vector2{ 0,0 }) return true; //Invalid house
 
-    for (const auto& known : m_KnownHouses)
-    {
-        if ((known.Center - house.Center).Magnitude() < 1.f)
-            return true;
-    }
-    return false;
+	for (const auto& visitedHouse : m_HousesSeen)
+	{
+		if ((visitedHouse.Center - hi.Center).Magnitude() < 1)	return true;
+	}
+	return false;
 }
 
-void WorldMemory::FlagHouseVisited(const HouseInfo& house)
+void WorldMemory::MarkHouseAsVisited(const HouseInfo& hi)
 {
-    if (HasVisitedHouse(house))
-        return;
+	if (!IsHouseVisited(hi))
+	{
+		AddHouseToMemory(hi);
 
-    RegisterHouse(house);
+		for (int i = 0; i < m_HousesToVisit.size(); i++)
+		{
+			if ((m_HousesToVisit[i].HouseInfo.Center - hi.Center).Magnitude() < 1)
+			{
+				if (m_LastChosenHouseIndex == i)
+				{
+					m_LastChosenHouseIndex = -1;
+				}
 
-    for (size_t i = 0; i < m_UnvisitedHouses.size(); ++i)
-    {
-        if ((m_UnvisitedHouses[i].HouseInfo.Center - house.Center).Magnitude() < 1.f)
-        {
-            if (m_LastHouseIndex == static_cast<int>(i))
-                m_LastHouseIndex = -1;
+				m_HousesToVisit.erase(m_HousesToVisit.begin() + i);
+				break;
+			}
+		}
 
-            m_UnvisitedHouses.erase(m_UnvisitedHouses.begin() + i);
-            break;
-        }
-    }
-
-    m_VisitedHouses.emplace_back(house);
+		m_HousesVisited.push_back(VisitedHouse(hi));
+	}
 }
 
-bool WorldMemory::HasVisitedHouse(const HouseInfo& house) const
+bool WorldMemory::IsHouseVisited(const HouseInfo& hi)
 {
-    if (house.Size == Elite::Vector2{ 0,0 })
-        return true; // invalid data
+	if (hi.Size == Elite::Vector2{ 0,0 }) return true; //Invalid house
 
-    for (const auto& visited : m_VisitedHouses)
-    {
-        if ((visited.GetHouseInfo().Center - house.Center).Magnitude() < 1.f)
-            return true;
-    }
-    return false;
+	for (auto visitedHouse : m_HousesVisited)
+	{
+		if ((visitedHouse.GetHouseInfo().Center - hi.Center).Magnitude() < 1)	return true;
+	}
+	return false;
 }
 
-size_t WorldMemory::UnvisitedHouseCount() const
+bool WorldMemory::AddPurgeToMemory(PurgeZoneInfo zi)
 {
-    return m_UnvisitedHouses.size();
+	if (IsPurgeInMemory(zi)) return false;
+	m_PurgesSeen.push_back(SeenPurge(zi));
+	return true;
 }
 
-UnvisitedHouse* WorldMemory::NearestUnvisitedHouse()
+bool WorldMemory::IsPurgeInMemory(PurgeZoneInfo zi)
 {
-    return m_UnvisitedHouses.empty() ? nullptr : &m_LastNearestHouse;
+	if (zi.ZoneHash == 0) return true; //Invalid purge
+
+	for (auto seenPurge : m_PurgesSeen)
+	{
+		if (seenPurge.GetPurgeInfo().Center == zi.Center)	return true;
+	}
+	return false;
 }
 
-HouseInfo& WorldMemory::ClosestKnownHouse()
+std::vector<PurgeZoneInfo> WorldMemory::GetAllSeenPurges()
 {
-    return m_LastNearestHouse.HouseInfo; // assumes valid call
+	std::vector<PurgeZoneInfo> purges;
+	for (auto purgeSeen : m_PurgesSeen)
+	{
+		purges.push_back(purgeSeen.GetPurgeInfo());
+	}
+	return purges;
 }
 
-// ----------------- PURGE ZONE MANAGEMENT -----------------
-bool WorldMemory::RegisterPurgeZone(const PurgeZoneInfo& zone)
+bool WorldMemory::AddItemToMemory(const ItemInfo& item)
 {
-    if (HasSeenPurgeZone(zone))
-        return false;
-
-    m_PurgeRecords.emplace_back(zone);
-    return true;
+	if (IsItemInMemory(item)) return false;
+	m_ItemsSeen.push_back(item);
+	return true;
 }
 
-bool WorldMemory::HasSeenPurgeZone(const PurgeZoneInfo& zone) const
+bool WorldMemory::RemoveItemFromMemory(const ItemInfo& item)
 {
-    if (zone.ZoneHash == 0)
-        return true; // invalid data
-
-    for (const auto& purge : m_PurgeRecords)
-    {
-        if (purge.GetPurgeInfo().Center == zone.Center)
-            return true;
-    }
-    return false;
+	for (size_t i = 0; i < m_ItemsSeen.size(); ++i)
+	{
+		if (m_ItemsSeen[i].Location == item.Location)
+		{
+			m_ItemsSeen.erase(m_ItemsSeen.begin() + i);
+			return true;
+		}
+	}
+	return false;
 }
 
-std::vector<PurgeZoneInfo> WorldMemory::AllPurgeZones() const
+bool WorldMemory::IsItemInMemory(const ItemInfo& item)
 {
-    std::vector<PurgeZoneInfo> result;
-    result.reserve(m_PurgeRecords.size());
-
-    for (const auto& purge : m_PurgeRecords)
-        result.push_back(purge.GetPurgeInfo());
-
-    return result;
+	for (const auto& seenItem : m_ItemsSeen)
+	{
+		if (seenItem.ItemHash == item.ItemHash)	return true;
+	}
+	return false;
 }
 
-// ----------------- ITEM MANAGEMENT -----------------
-bool WorldMemory::RememberItem(const ItemInfo& item)
+bool WorldMemory::HasItems()
 {
-    if (IsItemKnown(item))
-        return false;
-
-    m_Items.push_back(item);
-    return true;
+	return !m_ItemsSeen.empty();
 }
 
-bool WorldMemory::ForgetItem(const ItemInfo& item)
+size_t WorldMemory::HousesToVisitSize()
 {
-    for (size_t i = 0; i < m_Items.size(); ++i)
-    {
-        if (m_Items[i].Location == item.Location)
-        {
-            m_Items.erase(m_Items.begin() + i);
-            return true;
-        }
-    }
-    return false;
+	return m_HousesToVisit.size();
 }
 
-bool WorldMemory::IsItemKnown(const ItemInfo& item) const
+UnvisitedHouse* WorldMemory::GetClosestUnvisitedHouse()
 {
-    for (const auto& stored : m_Items)
-    {
-        if (stored.ItemHash == item.ItemHash)
-            return true;
-    }
-    return false;
+	return m_HousesToVisit.empty() ? nullptr : &m_LastClosestHouse;
 }
 
-bool WorldMemory::HasAnyItems() const
+void WorldMemory::Update(float elapsedSec, IExamInterface* iFace)
 {
-    return !m_Items.empty();
+
+	//--------------RECORD---------------
+	std::vector<ItemInfo> itemsInfo = iFace->GetItemsInFOV();
+	for (const auto& item : itemsInfo)
+	{
+		if (item.Type == eItemType::GARBAGE)
+		{
+			iFace->DestroyItem(item);
+		}
+		else if (AddItemToMemory(item))
+		{
+			switch (item.Type)
+			{
+			case eItemType::PISTOL:
+				std::cout << "Saved PISTOL into memory\n";
+				break;
+			case eItemType::SHOTGUN:
+				std::cout << "Saved SHOTGUN into memory\n";
+				break;
+			case eItemType::MEDKIT:
+				std::cout << "Saved MEDKIT into memory\n";
+				break;
+			case eItemType::FOOD:
+				std::cout << "Saved FOOD into memory\n";
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	std::vector<HouseInfo> houseInfo = iFace->GetHousesInFOV();
+	for (const auto& house : houseInfo)
+	{
+		if (AddHouseToMemory(house))
+		{
+			std::cout << "Saved house into memory\n";
+		}
+	}
+
+	//---------FORGET AFTER A WHILE--------------
+
+	for (size_t i = 0; i < m_HousesVisited.size(); )
+	{
+		if (m_HousesVisited[i].HasBeenForgotten(elapsedSec))
+		{
+			m_HousesVisited.erase(m_HousesVisited.begin() + i);
+
+			m_HousesToVisit.push_back(UnvisitedHouse{ m_HousesVisited[i].GetHouseInfo() });
+		}
+		else
+		{
+			++i;
+		}
+	}
+
+	for (size_t i = 0; i < m_PurgesSeen.size(); )
+	{
+		if (m_PurgesSeen[i].ZoneIsSafeAgain(elapsedSec))
+		{
+			m_PurgesSeen.erase(m_PurgesSeen.begin() + i);
+		}
+		else
+		{
+			++i;
+		}
+	}
+
+	//---------RECENTLY BITTEN FOR CUSTOM GRACE PERIOD--------------
+
+	auto agentInfo = iFace->Agent_GetInfo();
+
+	if (agentInfo.WasBitten) m_RecentlyBitten = true;
+
+	if (m_RecentlyBitten)
+	{
+		m_TimeSinceBitten += elapsedSec;
+		if (m_TimeSinceBitten > m_BittenGracePeriod)
+		{
+			m_RecentlyBitten = false;
+			m_TimeSinceBitten = 0;
+		}
+	}
+
+	/*
+		Get Closest House that you haven't visited
+	*/
+
+
+	m_WasInHouseLastFrame = agentInfo.IsInHouse;
+
+
+	float currentDistance = 0;
+	float nearestDistance = FLT_MAX;
+	size_t chosenIndex{};
+
+	if (!m_HousesToVisit.empty())
+	{
+
+		for (int i = 0; i < m_HousesToVisit.size(); i++)
+		{
+			currentDistance = (m_HousesToVisit[i].HouseInfo.Center - agentInfo.Position).MagnitudeSquared();
+
+
+			if (currentDistance < nearestDistance)
+			{
+				chosenIndex = i;
+				nearestDistance = currentDistance;
+			}
+		}
+		if (m_LastChosenHouseIndex != chosenIndex)
+		{
+			if (m_LastChosenHouseIndex >= 0)
+			{
+				m_HousesToVisit[m_LastChosenHouseIndex] = m_LastClosestHouse;
+			}
+			m_LastChosenHouseIndex = chosenIndex;
+			m_LastClosestHouse = m_HousesToVisit[chosenIndex];
+		}
+
+		if (m_LastClosestHouse.PointsToVisit.empty())
+		{
+			MarkHouseAsVisited(m_LastClosestHouse.HouseInfo);
+		}
+	}
+
+	/*
+
+		DEBUG DRAW
+
+	*/
+	for (const auto& house : m_HousesVisited)
+	{
+		iFace->Draw_Circle(house.GetHouseInfo().Center, 10, Elite::Vector3(1, 0, 0));
+	}
+
+	iFace->Draw_Circle(m_LastClosestHouse.HouseInfo.Center, 5, Elite::Vector3(0, 0, 1));
+
+	for (auto item : m_ItemsSeen)
+	{
+		iFace->Draw_Circle(item.Location, 2, Elite::Vector3(1, 1, 0));
+	}
+
 }
 
-// ----------------- UPDATE LOOP -----------------
-void WorldMemory::Refresh(float deltaTime, IExamInterface* iface)
+WorldMemory::WorldMemory()
 {
-    // ----------- Capture new items in sight -----------
-    for (const auto& item : iface->GetItemsInFOV())
-    {
-        if (item.Type == eItemType::GARBAGE)
-        {
-            iface->DestroyItem(item);
-            continue;
-        }
 
-        if (RememberItem(item))
-        {
-            switch (item.Type)
-            {
-            case eItemType::PISTOL:   std::cout << "Stored PISTOL\n"; break;
-            case eItemType::SHOTGUN:  std::cout << "Stored SHOTGUN\n"; break;
-            case eItemType::MEDKIT:   std::cout << "Stored MEDKIT\n"; break;
-            case eItemType::FOOD:     std::cout << "Stored FOOD\n"; break;
-            default: break;
-            }
-        }
-    }
-
-    // ----------- Capture new houses -----------
-    for (const auto& house : iface->GetHousesInFOV())
-    {
-        if (RegisterHouse(house))
-            std::cout << "Stored house\n";
-    }
-
-    // ----------- Forget visited houses over time -----------
-    for (size_t i = 0; i < m_VisitedHouses.size(); )
-    {
-        if (m_VisitedHouses[i].HasBeenForgotten(deltaTime))
-        {
-            auto forgottenHouse = m_VisitedHouses[i].GetHouseInfo();
-            m_VisitedHouses.erase(m_VisitedHouses.begin() + i);
-            m_UnvisitedHouses.push_back(UnvisitedHouse{ forgottenHouse });
-        }
-        else
-        {
-            ++i;
-        }
-    }
-
-    // ----------- Forget purge zones when safe -----------
-    for (size_t i = 0; i < m_PurgeRecords.size(); )
-    {
-        if (m_PurgeRecords[i].ZoneIsSafeAgain(deltaTime))
-            m_PurgeRecords.erase(m_PurgeRecords.begin() + i);
-        else
-            ++i;
-    }
-
-    // ----------- Recently bitten grace period -----------
-    auto agent = iface->Agent_GetInfo();
-
-    if (agent.WasBitten)
-        recentlyBitten = true;
-
-    if (recentlyBitten)
-    {
-        m_BiteTimer += deltaTime;
-        if (m_BiteTimer > m_BiteCooldown)
-        {
-            recentlyBitten = false;
-            m_BiteTimer = 0.f;
-        }
-    }
-
-    m_WasInsideHouse = agent.IsInHouse;
-
-    // ----------- Determine nearest unvisited house -----------
-    if (!m_UnvisitedHouses.empty())
-    {
-        float nearestDistSq = FLT_MAX;
-        size_t nearestIndex = 0;
-
-        for (size_t i = 0; i < m_UnvisitedHouses.size(); ++i)
-        {
-            float distSq = (m_UnvisitedHouses[i].HouseInfo.Center - agent.Position).MagnitudeSquared();
-            if (distSq < nearestDistSq)
-            {
-                nearestDistSq = distSq;
-                nearestIndex = i;
-            }
-        }
-
-        if (m_LastHouseIndex != static_cast<int>(nearestIndex))
-        {
-            if (m_LastHouseIndex >= 0)
-                m_UnvisitedHouses[m_LastHouseIndex] = m_LastNearestHouse;
-
-            m_LastHouseIndex = static_cast<int>(nearestIndex);
-            m_LastNearestHouse = m_UnvisitedHouses[nearestIndex];
-        }
-
-        if (m_LastNearestHouse.PointsToVisit.empty())
-            FlagHouseVisited(m_LastNearestHouse.HouseInfo);
-    }
-
-    // ----------- Debug drawing -----------
-    for (const auto& visited : m_VisitedHouses)
-        iface->Draw_Circle(visited.GetHouseInfo().Center, 10.f, Elite::Vector3(1, 0, 0));
-
-    iface->Draw_Circle(m_LastNearestHouse.HouseInfo.Center, 5.f, Elite::Vector3(0, 0, 1));
-
-    for (const auto& item : m_Items)
-        iface->Draw_Circle(item.Location, 2.f, Elite::Vector3(1, 1, 0));
-}
-
-WorldMemory::WorldMemory() = default;
-
-
-
-SeenPurge::SeenPurge(const PurgeZoneInfo& zi)
-{
-}
-
-bool SeenPurge::ZoneIsSafeAgain(float elapsedSec)
-{
-    return false;
-}
-
-VisitedHouse::VisitedHouse(const HouseInfo& hi)
-{
-}
-
-bool VisitedHouse::HasBeenForgotten(float elapsedSec)
-{
-    return false;
 }

@@ -1,69 +1,12 @@
 #pragma once
-
 #include "../../stdafx.h"
 #include <Exam_HelperStructs.h>
+#include "VisitedHouse.h"
 
+class SeenPurge;
 class IExamInterface;
 
-// Singleton class to store and manage persistent world knowledge
-
-
-class SeenPurge
-{
-public:
-	SeenPurge(const PurgeZoneInfo& zi);
-	bool ZoneIsSafeAgain(float elapsedSec);
-	PurgeZoneInfo GetPurgeInfo() const { return m_PurgeInfo; }
-private:
-	PurgeZoneInfo m_PurgeInfo;
-	float m_SecondsSinceSeen = 0;
-	float m_PurgeZoneMaxTimer = 7.f;
-};
-
-class VisitedHouse
-{
-public:
-	VisitedHouse(const HouseInfo& hi);
-	bool HasBeenForgotten(float elapsedSec);
-	const HouseInfo& GetHouseInfo() const { return m_HouseInfo; }
-private:
-	HouseInfo m_HouseInfo;
-	float m_SecondsSinceVisit = 0;
-	float m_SecondsTillRefresh = 2000.f;
-};
-
-struct UnvisitedHouse
-{
-	UnvisitedHouse(const HouseInfo& hi) : HouseInfo(hi)
-	{
-		Elite::Vector2 size = hi.Size * SizeMultiplier;
-		Elite::Vector2 flip = hi.Size * SizeMultiplier;
-		flip.y = -flip.y;
-
-		PointsToVisit.emplace_back(hi.Center - flip / 2.f);//top left
-		PointsToVisit.emplace_back(hi.Center + size / 2.f);//top right
-		PointsToVisit.emplace_back(hi.Center + flip / 2.f);//bottom right
-		PointsToVisit.emplace_back(hi.Center - size / 2.f);//bottom left
-		PointsToVisit.emplace_back(hi.Center);
-	}
-	UnvisitedHouse()
-	{
-	}
-	std::vector<Elite::Vector2> PointsToVisit;
-	HouseInfo HouseInfo;
-	float SizeMultiplier = 0.5f;
-	int MaxSize = 5;
-};
-
-
-
-
-
-
-
-
-
-class WorldMemory final
+class WorldMemory
 {
 public:
 	WorldMemory(const WorldMemory&) = delete;
@@ -72,53 +15,54 @@ public:
 	WorldMemory& operator=(WorldMemory&&) noexcept = delete;
 	WorldMemory(WorldMemory& other) = delete;
 
-	// Access & lifecycle
-	static WorldMemory * Instance();
-	static void Release();
+	static WorldMemory* Instance();
+	static void Destroy();
+	void Update(float elapsedSec, IExamInterface* iFace);
 
-	// Main update loop
-	void Refresh(float deltaTime, IExamInterface* iface);
+	//Returns false if house is already in memory
+	bool AddHouseToMemory(const HouseInfo& hi);
+	bool IsHouseInMemory(const HouseInfo& hi);
+	void MarkHouseAsVisited(const HouseInfo& hi);
+	bool IsHouseVisited(const HouseInfo& hi);
 
-	// House tracking
-	bool RegisterHouse(const HouseInfo& data);                  // Returns false if already stored
-	bool HasSeenHouse(const HouseInfo& data) const;
-	void FlagHouseVisited(const HouseInfo& data);
-	bool HasVisitedHouse(const HouseInfo& data) const;
-	size_t UnvisitedHouseCount() const;
-	UnvisitedHouse* NearestUnvisitedHouse();                     // nullptr if none remain
-	HouseInfo& ClosestKnownHouse();                              // Undefined if empty
+	//Returns false if purge is already in memory
+	bool AddPurgeToMemory(PurgeZoneInfo zi);
+	bool IsPurgeInMemory(PurgeZoneInfo zi);
+	std::vector<PurgeZoneInfo> GetAllSeenPurges();
 
-	// Purge zone tracking
-	bool RegisterPurgeZone(const PurgeZoneInfo& zoneData);       // Returns false if already stored
-	bool HasSeenPurgeZone(const PurgeZoneInfo& zoneData) const;
-	std::vector<PurgeZoneInfo> AllPurgeZones() const;
+	bool AddItemToMemory(const ItemInfo& item);
+	bool RemoveItemFromMemory(const ItemInfo& item);
+	bool IsItemInMemory(const ItemInfo& item);
+	bool HasItems();
+	std::vector<ItemInfo> GetAllItems() { return Instance()->m_ItemsSeen; }
 
-	// Item tracking
-	bool RememberItem(const ItemInfo& item);
-	bool ForgetItem(const ItemInfo& item);
-	bool IsItemKnown(const ItemInfo& item) const;
-	bool HasAnyItems() const;
-	std::vector<ItemInfo> ItemsList() const { return m_Items; }
+	size_t HousesToVisitSize();
+	UnvisitedHouse* GetClosestUnvisitedHouse(); //returns nullptr if no houses to visit
+	HouseInfo & GetClosestHouseInMemory(); //returns nullptr if no houses to visit
 
-	// Status flags
-	bool recentlyBitten = false;
+
+	bool m_RecentlyBitten = false;
 
 private:
+
+
 	WorldMemory();
-	static WorldMemory* s_Instance;
+	static WorldMemory* m_Instance;
 
-	std::vector<VisitedHouse> m_VisitedHouses;
-	std::vector<UnvisitedHouse> m_UnvisitedHouses;
-	std::vector<HouseInfo> m_KnownHouses;
-	std::vector<SeenPurge> m_PurgeRecords;
-	std::vector<ItemInfo> m_Items;
+	std::vector<VisitedHouse> m_HousesVisited;
+	std::vector<UnvisitedHouse> m_HousesToVisit;
+	std::vector<HouseInfo> m_HousesSeen;
+	std::vector<SeenPurge> m_PurgesSeen;
 
-	UnvisitedHouse m_LastNearestHouse{};
-	int m_LastHouseIndex = -1;
+	std::vector<ItemInfo> m_ItemsSeen;
 
-	bool m_WasInsideHouse = false;
+	UnvisitedHouse m_LastClosestHouse;
+	int m_LastChosenHouseIndex = -1;
 
-	float m_BiteTimer = 0.f;
-	float m_BiteCooldown = 2.f;
-	float m_HouseVisitProximity = 1.f;
+	bool m_WasInHouseLastFrame = false;
+
+	float m_TimeSinceBitten = 0;
+	float m_BittenGracePeriod = 2.f;
+	float m_VisitedHouseThreshold = 1.f;
 };
+

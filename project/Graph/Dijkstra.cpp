@@ -54,7 +54,7 @@ std::vector<GraphNode*> Dijkstra::FindPath(Graph* pGraph, GraphNode* pStartNode,
 
 	if (goalRecord)
 	{
-		NodeRecord* currentNodeRecord{ goalRecord.get()};
+		NodeRecord* currentNodeRecord{ goalRecord.get() };
 
 		while (currentNodeRecord)
 		{

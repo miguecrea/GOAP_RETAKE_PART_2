@@ -38,7 +38,7 @@ private:
 
 	std::unique_ptr<Planner> m_Planner;
 
-	std::vector<std::unique_ptr<BaseWorldState>> m_WorldStates;
+	std::vector<BaseWorldState*> m_WorldStates;
 
 
 };

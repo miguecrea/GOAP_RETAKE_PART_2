@@ -21,17 +21,15 @@ const std::string & BaseAction::GetName() const
 	return m_Name;
 }
 
-const std::vector<std::unique_ptr<BaseWorldState>>& BaseAction::GetPreconditions() const
+const std::vector<BaseWorldState*> & BaseAction::GetPreconditions() const
 {
 	return m_Preconditions;
 }
 
-const std::vector<std::unique_ptr<BaseWorldState>>& BaseAction::GetEffects() const
+const std::vector<BaseWorldState*> & BaseAction::GetEffects() const
 {
 	return m_Effects;
 }
-
-
 
 void BaseAction::SetWeight(float weight)
 {
@@ -48,12 +46,12 @@ void BaseAction::SetGraphNodeIndex(int idx)
 	m_GraphNodeIdx = idx;
 }
 
-void BaseAction::AddPrecondition(std::unique_ptr<BaseWorldState>state)
+void BaseAction::AddPrecondition(BaseWorldState * WorldState)
 {
-	m_Preconditions.push_back(std::move(state));
+	m_Preconditions.push_back(WorldState);
 
 }
-void BaseAction::AddEffect(std::unique_ptr<BaseWorldState> state)
+void BaseAction::AddEffect(BaseWorldState * state)
 {
-	m_Effects.push_back(std::move(state));
+	m_Effects.push_back(state);
 }

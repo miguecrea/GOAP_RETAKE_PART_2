@@ -23,34 +23,87 @@ private:
 	int m_MaxHealth = 10;
 };
 
-class EvadeEnemy final : public BaseAction
+
+class GoToNearestSeenFood final : public BaseAction
 {
 public:
+	GoToNearestSeenFood();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+};
 
-	EvadeEnemy();
+
+class GoToNearestSeenGun final : public BaseAction
+{
+public:
+	GoToNearestSeenGun();
+
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+};
+
+class GoToNearestSeenMedKit final : public BaseAction
+{
+public:
+	GoToNearestSeenMedKit();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+};
+
+
+
+class MoveIntoHouse final : public BaseAction
+{
+public:
+	MoveIntoHouse();
+	bool Execute(float elapsedSec, SteeringPlugin_Output & steeringOutput, IExamInterface* iFace) override;
+
+private:
+	float m_PermittedDistanceFromHouseCenter{ 1 };
+	float m_PermittedDistanceFromHouseCorners{ 4 };
+};
+
+
+
+class PickupFood final : public BaseAction
+{
+public:
+	PickupFood();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
 private:
+	int m_FoodSlot = 4;
 };
 
-class GoToNearestSeenItem final : public BaseAction
+
+class PickupWeapon final : public BaseAction
 {
 public:
-	GoToNearestSeenItem(const eItemType & Item);
+	PickupWeapon();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
-	eItemType m_DesiredItem;
+private:
+
+	int GetPistolSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace);
+	int GetShotgunSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace);
+	int m_MinAcceptedBulletCount{ 30 };
+
+	UINT m_StartWeaponSlot{ 0 };
+	UINT m_EndWeaponSlot{ 1 };
 };
 
-class PickUpItem final : public BaseAction
+
+class PickupMedKit final : public BaseAction
 {
 public:
-	PickUpItem(const eItemType & Item);
+	PickupMedKit();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
-	eItemType m_DesiredItem;
+private:
+
+	int GetMedKitSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace);
 
 
+	int m_MaxHealth{ 10 }; //couldn't find maxHealth var but the UI in game says 10 so
+	int m_StartMedKitInvSlot{ 2 };
+	int m_LastMedKitInvSlot{ 3 };
 };
 
 
@@ -64,30 +117,46 @@ public:
 
 
 
+
+
 class Wander final : public BaseAction
 {
 public:
 	Wander();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
-
 private:
-	// Wander circle params
-	float m_CircleDistance = 15.f;   // distance ahead of agent
-	float m_CircleRadius = 8.f;      // radius of wander circle
-	float m_AngleChange = 0.5f;      // max change in wander angle per update
-	float m_WanderAngle = 0.f;
 
-	// Purge avoidance params
-	float m_MinDistanceFromPurge = 15.f;
-	float m_OptimalDistanceFromPurge = 30.f;
+	void NewRandomWanderPosInSpiral(const WorldInfo& agentPos);
+	void NewIncrementalWanderPosInSpiral(const WorldInfo& agentPos);
+	bool NewWanderPosAwayFromPurges(const Elite::Vector2& closestPathPoint);
+
+
+	Elite::Vector2 m_WanderPos;
+	Elite::Vector2 m_WanderDir;
+	float m_StartingDegreeFromCenterForWanderPos;
+	float m_CompoundDegreeFromCenterForWanderPos;
+	float m_MaxDegreeIncrease{ (2 * M_PI) / 20.f };//18 degrees
+	float m_MinDegreeIncrease{ (2 * M_PI) / 10.f };//36 degrees
+	const float m_MinDistanceFromPurge{ 10.f };
+	const float m_OptimalDistanceFromPurge{ 50.0f };
+	const float m_DistanceFromWanderPosToHaveNewWanderPos{ 8.0f };
+
+
+	//Distance from world center
+	const float m_MaxWanderDistanceMultiplier{ 0.8 };
+	const float m_MinWanderDistanceMultiplier{ 0.4 };
+	const float m_DeltaInMultiplierPerTime{ 0.03 };
+	float m_CurrentDeltaInMultiplierPerTime{ m_DeltaInMultiplierPerTime };
+	float m_CurrentMultiplier{ m_MinWanderDistanceMultiplier };
 };
 
 
-class ShootEnemy final : public BaseAction
+
+class ShootEnemyInView final : public BaseAction
 {
 public:
-	ShootEnemy();
+	ShootEnemyInView();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
 private:
@@ -106,13 +175,22 @@ public:
 
 
 
-class MoveIntoHouse final : public BaseAction
+class SprintAwayFromEnemy final : public BaseAction
 {
 public:
-	MoveIntoHouse();
+	SprintAwayFromEnemy();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
-private:
-	float m_PermittedDistanceFromHouseCenter{ 1 };
-	float m_PermittedDistanceFromHouseCorners{ 4 };
 };
+
+
+class TurnReallyFast final : public BaseAction
+{
+public:
+	TurnReallyFast();
+	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
+
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+

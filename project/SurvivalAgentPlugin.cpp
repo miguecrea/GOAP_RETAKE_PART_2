@@ -29,40 +29,27 @@ void SurvivalAgentPlugin::Initialize(IBaseInterface* pInterface, PluginInfo& inf
 
 
 
-	m_WorldStates.push_back(std::make_unique<HasSavedUpItem>(false, eItemType::FOOD));
-	m_WorldStates.push_back(std::make_unique<HasSavedUpItem>(false, eItemType::MEDKIT));
-	m_WorldStates.push_back(std::make_unique<IsLoadedWithMedKits>(false));
-	m_WorldStates.push_back(std::make_unique<HasSavedWeaponsWithAcceptableAmmo>(false));
-	m_WorldStates.push_back(std::make_unique<HasVisitedAllSeenHouses>(false));
-	m_WorldStates.push_back(std::make_unique<HasWeaponState>(false));
-	m_WorldStates.push_back(std::make_unique<SafeFromEnemy>(false));
-	m_WorldStates.push_back(std::make_unique<HouseInViewState>(false));
-	m_WorldStates.push_back(std::make_unique<IsHungry>(false));
-	m_WorldStates.push_back(std::make_unique<IsInHouseState>(false));
-	m_WorldStates.push_back(std::make_unique<IsInPurgeZoneState>(false));
+	m_WorldStates.push_back(new HasSavedUpFood						(false));
+	m_WorldStates.push_back(new HasSavedUpMedKits					(false));
+	m_WorldStates.push_back(new IsLoadedWithMedKits					(false));
+	m_WorldStates.push_back(new HasSavedWeaponsWithAcceptableAmmo	(false));
+	m_WorldStates.push_back(new KnowsMedKitLocation					(false));	
+	m_WorldStates.push_back(new KnowsWeaponLocation					(false));
+	m_WorldStates.push_back(new KnowsFoodLocation					(false));
+	m_WorldStates.push_back(new NextToMedKit						(false));
+	m_WorldStates.push_back(new NextToWeapon						(false));
+	m_WorldStates.push_back(new NextToFood							(false));
+	m_WorldStates.push_back(new RecentlyBittenState					(false));
+	m_WorldStates.push_back(new ThereAreHousesToVisit					(false));
+	m_WorldStates.push_back(new IsInHouseState						(false));
+	m_WorldStates.push_back(new ZombieInViewState					(false));
+	m_WorldStates.push_back(new HasWeaponState						(false));
+	m_WorldStates.push_back(new IsHurtState							(false));
+	m_WorldStates.push_back(new IsHungry							(false));
+	m_WorldStates.push_back(new HasVisitedAllSeenHouses				(true));
+	m_WorldStates.push_back(new IsInPurgeZoneState					(false));
 
-	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::FOOD));
-	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::MEDKIT));
-	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::PISTOL));
-	m_WorldStates.push_back(std::make_unique<KnowsItemLocation>(false,eItemType::SHOTGUN));
-
-	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::SHOTGUN));
-	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::PISTOL));
-	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::MEDKIT));
-	m_WorldStates.push_back(std::make_unique<NextToItem>(false,eItemType::FOOD));
-
-	m_WorldStates.push_back(std::make_unique<IsInventoryFull>(false));
-	m_WorldStates.push_back(std::make_unique<IsLowOnAmmo>(false));
-	m_WorldStates.push_back(std::make_unique<IsNearEnemy>(false));
-	m_WorldStates.push_back(std::make_unique<ZombieInViewState>(false));
-	m_WorldStates.push_back(std::make_unique<HasOpenInventorySlot>(false));
-	m_WorldStates.push_back(std::make_unique<IsInjured>(false));
-
-
-
-
-
-	m_Planner = std::make_unique<Planner>(m_WorldStates);
+	m_Planner = std::make_unique<Planner>(&m_WorldStates);
 
 
 }
@@ -169,18 +156,18 @@ SteeringPlugin_Output SurvivalAgentPlugin::UpdateSteering(float dt)
 {
 	auto steering = SteeringPlugin_Output();
 
-	std::cout << "Hello bro\n";
 
 	for (auto & state : m_WorldStates)
 	{
 		state->Update(dt, m_pInterface);
 	}
 
-	WorldMemory::Instance()->Refresh(dt, m_pInterface);
+	WorldMemory::Instance()->Update(dt, m_pInterface);
 
 
 
 	auto hasToSteer = m_Planner->CalculateAction(dt, steering, m_pInterface);
+
 	if (hasToSteer)
 	{
 		return steering;

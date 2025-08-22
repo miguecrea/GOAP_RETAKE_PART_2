@@ -28,24 +28,23 @@ public:
     float GetWeight() const;
     int GetGraphNodeIndex() const;
     const std::string& GetName() const;
-    const std::vector<std::unique_ptr<BaseWorldState>>& GetPreconditions() const;
-    const std::vector<std::unique_ptr<BaseWorldState>>& GetEffects() const;
-
+    const std::vector<BaseWorldState*> & GetPreconditions() const;
+    const std::vector<BaseWorldState *>& GetEffects() const;
     void SetGraphNodeIndex(int idx);
 
 protected:
     void SetWeight(float weight);
     void SetName(const std::string& name);
 
-    void AddPrecondition(std::unique_ptr<BaseWorldState> state);
-    void AddEffect(std::unique_ptr<BaseWorldState> state);
+    void AddPrecondition(BaseWorldState * state);
+    void AddEffect(BaseWorldState * state);
 
-    std::vector<std::unique_ptr<BaseWorldState>> m_Preconditions;
-    std::vector<std::unique_ptr<BaseWorldState>> m_Effects;
+    std::vector<BaseWorldState*> m_Preconditions;
+    std::vector<BaseWorldState*> m_Effects;
 
 private:
-    std::string m_Name;
-    float m_Weight;
-    int m_GraphNodeIdx;
+    std::string m_Name{};
+    float m_Weight{};
+    int m_GraphNodeIdx{};
 };
 

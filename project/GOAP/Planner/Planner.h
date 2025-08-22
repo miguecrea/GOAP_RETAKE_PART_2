@@ -14,12 +14,13 @@
 #include "unordered_set"
 
 class IExamInterface;
+class WorldStates;
 
 
 class Planner
 {
 public:
-	Planner(const std::vector<std::unique_ptr<BaseWorldState>>& WorldStates);
+	Planner(std::vector<BaseWorldState*>* WorldStates);
 	~Planner();
 	Planner(const Planner&) = delete;
 	Planner(Planner&&) noexcept = delete;
@@ -31,13 +32,13 @@ public:
 
 private:
 
-	void MakeGraph(BaseWorldState* stateToAchieve);
-
-	std::vector<std::unique_ptr<BaseWorldState>> m_pWorldStates;
+	void MakeGraph(BaseWorldState * stateToAchiev);
 
 
-	std::vector<std::unique_ptr<BaseAction>> m_Actions;
-	std::vector<std::unique_ptr<BaseWorldState>> m_Goals;
+	std::vector<BaseWorldState*> * m_pWorldStates;
+
+	std::vector<BaseAction *> m_Actions;
+	std::vector<BaseWorldState*> m_Goals;
 
 	std::unique_ptr<Graph> m_pGraph{};
 

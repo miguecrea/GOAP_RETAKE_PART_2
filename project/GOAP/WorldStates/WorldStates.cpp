@@ -6,151 +6,308 @@
 #include <algorithm>
 #include"Exam_HelperStructs.h"
 
+void HasSavedUpFood::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	int currentMedKitCount{ 0 };
+	ItemInfo currentItem{};
+
+	m_Predicate = false;
+
+	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::FOOD)
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
+}
+
+void HasSavedUpMedKits::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	int currentMedKitCount{ 0 };
+	ItemInfo currentItem{};
+
+	m_Predicate = false;
+
+	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::MEDKIT)
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
+
+}
+
+
 void IsLoadedWithMedKits::Update(float elapsedSec, IExamInterface* iFace)
 {
-    m_Predicate = WorldUtils::CountItems(iFace, eItemType::MEDKIT) >= m_AcceptableAmountOfMedKits;
+	int currentMedKitCount{ 0 };
+	ItemInfo currentItem{};
+
+	m_Predicate = false;
+
+	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::MEDKIT)
+		{
+			++currentMedKitCount;
+
+			if (currentMedKitCount >= m_AcceptableAmountOfMedKits)
+			{
+				m_Predicate = true;
+				return;
+			}
+		}
+	}
 }
 
 void HasSavedWeaponsWithAcceptableAmmo::Update(float elapsedSec, IExamInterface* iFace)
 {
-    int count = WorldUtils::CountItemsWithValue(iFace, eItemType::PISTOL, m_AcceptableAmmo) + WorldUtils::CountItemsWithValue(iFace, eItemType::SHOTGUN, m_AcceptableAmmo);
 
-    m_Predicate = count >= m_NumberOfAcceptableWeapons;
-}
+	ItemInfo item;
+	int numOfAcceptableWeapons = 0;
+	m_Predicate = false;
+	for (size_t i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, item) &&
+			(item.Type == eItemType::PISTOL ||
+				item.Type == eItemType::SHOTGUN) && item.Value >= m_AcceptableAmmo)
+		{
+			++numOfAcceptableWeapons;
 
-void HasWeaponState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::InventoryContains(iFace, eItemType::PISTOL) || WorldUtils::InventoryContains(iFace, eItemType::SHOTGUN);
-}
-
-void IsHungry::Update(float elapsedSec, IExamInterface* iFace)
-{
-    float totalEnergyValueInInventory = 0.f;
-    ItemInfo item{};
-    bool foodInInventory = false;
-
-
-    for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
-    {
-        if (iFace->Inventory_GetItem(i, item) && item.Type == eItemType::FOOD)
-        {
-            foodInInventory = true;
-            totalEnergyValueInInventory += item.Value;
-            //add up all the energy value in inventory 
-        }
-    }
-
-    // Decide dynamic hunger threshold
-    float actualHungerThreshold = !foodInInventory ? m_HungerThresholdIfNoFoodInInventory : totalEnergyValueInInventory >= m_MaxEnergyCapacity ? m_LowestHungerThreshold : m_MaxEnergyCapacity - totalEnergyValueInInventory;
-
-    m_Predicate = WorldUtils::IsHungry(iFace, actualHungerThreshold);
-}
-
-void IsHurtState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::HasLowHealth(iFace, m_HealthThreshold);
-}
-
-void IsInHouseState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = iFace->Agent_GetInfo().IsInHouse;
-}
-
-void ZombieInViewState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = iFace->FOV_GetStats().NumEnemies > 0;
-}
-
-
-void IsInventoryFull::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::IsInventoryFull(iFace);
-}
-
-void IsLowOnAmmo::Update(float elapsedSec, IExamInterface* iFace)
-{
-    // True if ANY weapon is below threshold
-    m_Predicate =
-        WorldUtils::InventoryContains(iFace, eItemType::PISTOL, 0) && WorldUtils::CountItemsWithValue(iFace, eItemType::PISTOL, m_AmmoThreshold) == 0
-        ||
-        WorldUtils::InventoryContains(iFace, eItemType::SHOTGUN, 0) &&
-        WorldUtils::CountItemsWithValue(iFace, eItemType::SHOTGUN, m_AmmoThreshold) == 0;
-
-}
-
-void IsNearEnemy::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::EnemyInRange(iFace, iFace->Agent_GetInfo().GrabRange);
-}
-
-void HasOpenInventorySlot::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::HasOpenSlot(iFace);
-}
-
-void SafeFromEnemy::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = WorldUtils::EnemiesAllOutOfRange(iFace, iFace->Agent_GetInfo().GrabRange);
-}
-
-
-void IsInPurgeZoneState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    m_Predicate = false;
-
-    auto purgeZones = iFace->GetPurgeZonesInFOV();
-    for (const auto& pz : purgeZones)
-        WorldMemory::Instance()->RegisterPurgeZone(pz);
-
-    auto agentPos = iFace->Agent_GetInfo().Position;
-    for (const auto& seenPurge : WorldMemory::Instance()->AllPurgeZones())
-    {
-        if ((agentPos - seenPurge.Center).Magnitude() < seenPurge.Radius + 5)
-        {
-            m_Predicate = true;
-            break;
-        }
-    }
-}
-
-void HouseInViewState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    // Assuming we want "can SEE house", not "inside"
-    auto houses = iFace->GetHousesInFOV();
-    m_Predicate = !houses.empty();
+			if (numOfAcceptableWeapons >= m_NumberOfAcceptableWeapons)
+			{
+				m_Predicate = true;
+				return;
+			}
+		}
+	}
 }
 
 void HasVisitedAllSeenHouses::Update(float elapsedSec, IExamInterface* iFace)
 {
-    m_Predicate = WorldMemory::Instance()->UnvisitedHouseCount() == 0;
+
+	m_Predicate = WorldMemory::Instance()->HousesToVisitSize() == 0;//returns true if there are houses left to visit
+
 }
 
-void HasSavedUpItem::Update(float elapsedSec, IExamInterface* iFace)
+void HasWeaponState::Update(float elapsedSec, IExamInterface* iFace)
 {
-    m_Predicate = WorldUtils::InventoryContains(iFace, m_ItemType);
+	ItemInfo item{};
+
+	m_Predicate = false;
+	for (size_t i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, item) &&
+			(item.Type == eItemType::PISTOL ||
+				item.Type == eItemType::SHOTGUN))
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
 }
 
-void KnowsItemLocation::Update(float elapsedSec, IExamInterface* iFace)
+void ThereAreHousesToVisit::Update(float elapsedSec, IExamInterface* iFace)
 {
-    auto items = WorldMemory::Instance()->ItemsList();
-    m_Predicate = std::any_of(items.begin(), items.end(),
-        [&](const ItemInfo& info) { return info.Type == m_Item; });
+	m_Predicate = WorldMemory::Instance()->HousesToVisitSize() > 0;
+
 }
 
-void NextToItem::Update(float elapsedSec, IExamInterface* iFace)
+void IsHungry::Update(float elapsedSec, IExamInterface* iFace)
 {
-    auto items = iFace->GetItemsInFOV();
-    Elite::Vector2 agentPos = iFace->Agent_GetInfo().Position;
-    float grabRange = iFace->Agent_GetInfo().GrabRange;
+	float totalEnergyValueInInventory{ 0 };
+	ItemInfo currentItem{};
+	bool foodInInventory{ false };
 
-    m_Predicate = std::any_of(items.begin(), items.end(), [&](const ItemInfo & info)
-        {
-            return info.Type == m_Item &&
-                (info.Location - agentPos).Magnitude() < grabRange;
-        });
+	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+	{
+		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::FOOD)
+		{
+			foodInInventory = true;
+			totalEnergyValueInInventory += currentItem.Value;
+		}
+	}
+
+	float actualHungerThreshold =
+		!foodInInventory ? m_HungerThresholdIfNoFoodInInventory :
+		totalEnergyValueInInventory >= m_MaxEnergyCapacity ? m_LowestHungerThreshold :
+		m_MaxEnergyCapacity - totalEnergyValueInInventory;
+
+
+	m_Predicate = iFace->Agent_GetInfo().Energy <= actualHungerThreshold;
 }
 
-void IsInjured::Update(float elapsedSec, IExamInterface * iFace)
+void IsHurtState::Update(float elapsedSec, IExamInterface* iFace)
 {
-    m_Predicate =  iFace->Agent_GetInfo().Health < m_HealthThreshold;
+	m_Predicate = iFace->Agent_GetInfo().Health < m_HealthThreshold;
+
+}
+
+void IsInHouseState::Update(float elapsedSec, IExamInterface* iFace)
+{
+	m_Predicate =
+		iFace->Agent_GetInfo().IsInHouse;
+}
+
+void IsInPurgeZoneState::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	m_Predicate = false;
+
+	std::vector<PurgeZoneInfo> purgeZonesInfo = iFace->GetPurgeZonesInFOV();
+
+	for (const auto& purgeZone : purgeZonesInfo)
+	{
+		WorldMemory::Instance()->AddPurgeToMemory(purgeZone);
+	}
+
+	auto agentInfo = iFace->Agent_GetInfo();
+
+	purgeZonesInfo = WorldMemory::Instance()->GetAllSeenPurges();
+
+	for (auto& seenPurge : purgeZonesInfo)
+	{
+		if ((agentInfo.Position - seenPurge.Center).Magnitude() < (seenPurge.Radius + 5))
+		{
+			m_Predicate = true;  //
+			break;
+		}
+	}
+}
+
+void KnowsFoodLocation::Update(float elapsedSec, IExamInterface* iFace)
+{
+	m_Predicate = false;
+
+	std::vector<ItemInfo> itemInfo = WorldMemory::Instance()->GetAllItems();
+
+	for (size_t i = 0; i < itemInfo.size(); i++)
+	{
+		if (itemInfo[i].Type == eItemType::FOOD)
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
+}
+
+void KnowsMedKitLocation::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	m_Predicate = false;
+
+	std::vector<ItemInfo> itemInfo = WorldMemory::Instance()->GetAllItems();
+
+	for (size_t i = 0; i < itemInfo.size(); i++)
+	{
+		if (itemInfo[i].Type == eItemType::MEDKIT)
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
+}
+
+void KnowsWeaponLocation::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	m_Predicate = false;
+
+	std::vector<ItemInfo> itemInfo = WorldMemory::Instance()->GetAllItems();
+
+	for (size_t i = 0; i < itemInfo.size(); i++)
+	{
+		if (itemInfo[i].Type == eItemType::PISTOL || itemInfo[i].Type == eItemType::SHOTGUN)
+		{
+			m_Predicate = true;
+			return;
+		}
+	}
+}
+
+void NextToFood::Update(float elapsedSec, IExamInterface* iFace)
+{
+	std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
+
+	m_Predicate = false;
+	for (const auto& info : itemInfo)
+	{
+		if (info.Type == eItemType::FOOD)
+		{
+			if ((info.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
+			{
+				m_Predicate = true;
+				break;
+			}
+		}
+
+	}
+}
+
+void NextToMedKit::Update(float elapsedSec, IExamInterface* iFace)
+{
+
+	std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
+
+	m_Predicate = false;
+	for (const auto& info : itemInfo)
+	{
+		if (info.Type == eItemType::MEDKIT)
+		{
+			if ((info.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
+			{
+				m_Predicate = true;
+				break;
+			}
+		}
+
+	}
+}
+
+void NextToWeapon::Update(float elapsedSec, IExamInterface* iFace)
+{
+	std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
+
+	m_Predicate = false;
+	for (const auto& info : itemInfo)
+	{
+		if (info.Type == eItemType::SHOTGUN ||
+			info.Type == eItemType::PISTOL)
+		{
+			if ((info.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
+			{
+				m_Predicate = true;
+				break;
+			}
+		}
+
+	}
+}
+
+void RecentlyBittenState::Update(float elapsedSec, IExamInterface* iFace)
+{
+	if (iFace->Agent_GetInfo().WasBitten)
+		m_GracePeriod = m_DefaultGracePeriod;
+
+	if (m_GracePeriod > 0)
+	{
+		m_GracePeriod -= elapsedSec;
+		m_Predicate = true;
+	}
+	else
+	{
+		m_Predicate = false;
+	}
+}
+
+void ZombieInViewState::Update(float elapsedSec, IExamInterface* iFace)
+{
+	m_Predicate = iFace->FOV_GetStats().NumEnemies > 0;
+
 }
