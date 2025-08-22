@@ -16,19 +16,27 @@ Planner::Planner(const std::vector<std::unique_ptr<BaseWorldState>>& pWorldState
 
 
 
-	//m_Goals =
-	//{
-	//	std::make_unique<IsInPurgeZoneState>(false),
-	//	std::make_unique<RecentlyBittenState>(false),
-	//	std::make_unique<ZombieInViewState>(false),
-	//	std::make_unique<HasWeaponState>(true),
-	//	std::make_unique<IsHungry>(false),
-	//	std::make_unique<HasSavedUpItem>(true,eItemType::FOOD),
-	//	std::make_unique<IsLoadedWithMedKits>(true),
-	//	std::make_unique<HasVisitedAllSeenHouses>(true),
-	//	std::make_unique<HasSavedWeaponsWithAcceptableAmmo>(true),
-	//	std::make_unique<SafeFromEnemy>(true),
-	//};
+
+
+
+
+	//run from purge 
+	// go to Item
+
+	m_Goals =
+	{
+		std::make_unique<IsInPurgeZoneState>(false),
+		std::make_unique<ZombieInViewState>(false),
+		std::make_unique<HasWeaponState>(true),
+		std::make_unique<IsHungry>(false),
+		std::make_unique<HasSavedUpItem>(true,eItemType::FOOD),
+		std::make_unique<IsLoadedWithMedKits>(true),
+		std::make_unique<HasVisitedAllSeenHouses>(true),
+		std::make_unique<HasSavedWeaponsWithAcceptableAmmo>(true),
+		std::make_unique<SafeFromEnemy>(true),
+		std::make_unique<IsInjured>(false),
+		std::make_unique<IsLowOnAmmo>(false),
+	};
 
 
 
@@ -44,6 +52,6 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
 }
 
-void Planner::MakeGraph(BaseWorldState* stateToAchieve)
+void Planner::MakeGraph(BaseWorldState * stateToAchieve)
 {
 }

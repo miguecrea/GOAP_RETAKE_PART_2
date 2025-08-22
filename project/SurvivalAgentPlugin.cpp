@@ -57,20 +57,13 @@ void SurvivalAgentPlugin::Initialize(IBaseInterface* pInterface, PluginInfo& inf
 	m_WorldStates.push_back(std::make_unique<IsNearEnemy>(false));
 	m_WorldStates.push_back(std::make_unique<ZombieInViewState>(false));
 	m_WorldStates.push_back(std::make_unique<HasOpenInventorySlot>(false));
-
-
+	m_WorldStates.push_back(std::make_unique<IsInjured>(false));
 
 
 
 
 
 	m_Planner = std::make_unique<Planner>(m_WorldStates);
-
-
-
-
-
-
 
 
 }
@@ -235,9 +228,9 @@ SteeringPlugin_Output SurvivalAgentPlugin::UpdateSteering(float dt)
 		}
 	}
 
-	steering.LinearVelocity = nextTargetPos - agentInfo.Position; //Desired Velocity
-	steering.LinearVelocity.Normalize(); //Normalize Desired Velocity
-	steering.LinearVelocity *= agentInfo.MaxLinearSpeed; //Rescale to Max Speed
+	steering.LinearVelocity = nextTargetPos - agentInfo.Position;
+	steering.LinearVelocity.Normalize(); 
+	steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
 
 	if (Distance(nextTargetPos, agentInfo.Position) < 2.f)
 	{

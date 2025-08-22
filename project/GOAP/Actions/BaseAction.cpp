@@ -16,7 +16,7 @@ int BaseAction::GetGraphNodeIndex() const
 	return m_GraphNodeIdx;
 }
 
-const std::string& BaseAction::GetName() const
+const std::string & BaseAction::GetName() const
 {
 	return m_Name;
 }

@@ -114,6 +114,21 @@ public:
 };
 
 
+class IsInjured : public BaseWorldState {
+public:
+	explicit IsInjured(bool predicate)
+		: BaseWorldState(predicate)
+	{
+		m_Name = "IsInjured";
+	}
+
+	float m_HealthThreshold = 6.f;
+
+
+	void Update(float elapsedSec, IExamInterface* iFace) override;
+};
+
+
 class IsHungry : public BaseWorldState {
 public:
 	explicit IsHungry(bool predicate)
@@ -238,21 +253,7 @@ public:
 	void Update(float elapsedSec, IExamInterface* iFace) override;
 };
 
-class RecentlyBittenState : public BaseWorldState
-{
-public:
-	explicit RecentlyBittenState(bool predicate)
-		: BaseWorldState(predicate)
-	{
-		m_Name = "RecentlyBittenState";
-	}
 
-	void Update(float elapsedSec, IExamInterface* iFace) override;
-
-private:
-	float m_DefaultGracePeriod = 2.f;
-	float m_GracePeriod = 0.f;
-};
 
 
 class IsInventoryFull : public BaseWorldState

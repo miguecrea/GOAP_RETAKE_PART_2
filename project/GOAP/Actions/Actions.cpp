@@ -35,6 +35,7 @@ bool ConsumeSavedFood::Execute(float elapsedSec, SteeringPlugin_Output& steering
 			currentItem.Type == eItemType::FOOD)
 		{
 			agentInfo.Energy += currentItem.Value;
+
 			iFace->Inventory_UseItem(i);
 			iFace->Inventory_RemoveItem(i);
 
@@ -217,17 +218,15 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 	steeringOutput.AutoOrient = true;
 	auto agent = iFace->Agent_GetInfo();
 
-	// --- 1. Compute Wander Target ---
-	float circleDistance = m_CircleDistance; // how far ahead of agent
-	float circleRadius = m_CircleRadius;     // how wide the wander arc
+	float circleDistance = m_CircleDistance; 
+	float circleRadius = m_CircleRadius;     
 
 	Elite::Vector2 forward = agent.LinearVelocity.GetNormalized();
-	if (forward.Magnitude() < 0.01f) // fallback if standing still
+	if (forward.Magnitude() < 0.01f)
 		forward = Elite::Vector2(1, 0);
 
 	Elite::Vector2 circleCenter = agent.Position + forward * circleDistance;
 
-	// Random displacement on circle
 	m_WanderAngle += Elite::randomFloat(-m_AngleChange, m_AngleChange);
 	Elite::Vector2 offset{ cos(m_WanderAngle) * circleRadius, sin(m_WanderAngle) * circleRadius };
 

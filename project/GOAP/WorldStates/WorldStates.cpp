@@ -61,21 +61,6 @@ void ZombieInViewState::Update(float elapsedSec, IExamInterface* iFace)
     m_Predicate = iFace->FOV_GetStats().NumEnemies > 0;
 }
 
-void RecentlyBittenState::Update(float elapsedSec, IExamInterface* iFace)
-{
-    if (iFace->Agent_GetInfo().WasBitten)
-        m_GracePeriod = m_DefaultGracePeriod;
-
-    if (m_GracePeriod > 0)
-    {
-        m_GracePeriod -= elapsedSec;
-        m_Predicate = true;
-    }
-    else
-    {
-        m_Predicate = false;
-    }
-}
 
 void IsInventoryFull::Update(float elapsedSec, IExamInterface* iFace)
 {
@@ -85,14 +70,11 @@ void IsInventoryFull::Update(float elapsedSec, IExamInterface* iFace)
 void IsLowOnAmmo::Update(float elapsedSec, IExamInterface* iFace)
 {
     // True if ANY weapon is below threshold
-
     m_Predicate =
         WorldUtils::InventoryContains(iFace, eItemType::PISTOL, 0) && WorldUtils::CountItemsWithValue(iFace, eItemType::PISTOL, m_AmmoThreshold) == 0
         ||
         WorldUtils::InventoryContains(iFace, eItemType::SHOTGUN, 0) &&
         WorldUtils::CountItemsWithValue(iFace, eItemType::SHOTGUN, m_AmmoThreshold) == 0;
-
-
 
 }
 
@@ -110,6 +92,7 @@ void SafeFromEnemy::Update(float elapsedSec, IExamInterface* iFace)
 {
     m_Predicate = WorldUtils::EnemiesAllOutOfRange(iFace, iFace->Agent_GetInfo().GrabRange);
 }
+
 
 void IsInPurgeZoneState::Update(float elapsedSec, IExamInterface* iFace)
 {
@@ -160,9 +143,14 @@ void NextToItem::Update(float elapsedSec, IExamInterface* iFace)
     Elite::Vector2 agentPos = iFace->Agent_GetInfo().Position;
     float grabRange = iFace->Agent_GetInfo().GrabRange;
 
-    m_Predicate = std::any_of(items.begin(), items.end(), [&](const ItemInfo& info)
+    m_Predicate = std::any_of(items.begin(), items.end(), [&](const ItemInfo & info)
         {
             return info.Type == m_Item &&
                 (info.Location - agentPos).Magnitude() < grabRange;
         });
+}
+
+void IsInjured::Update(float elapsedSec, IExamInterface * iFace)
+{
+    m_Predicate =  iFace->Agent_GetInfo().Health < m_HealthThreshold;
 }
