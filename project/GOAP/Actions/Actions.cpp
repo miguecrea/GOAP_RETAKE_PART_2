@@ -62,57 +62,7 @@ GoToNearestSeenFood::GoToNearestSeenFood()
 
 bool GoToNearestSeenFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-
-
-
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
-	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
-
-	if (seenItems.empty())
-	{
-		return false;
-	}
-
-	auto agentInfo = iFace->Agent_GetInfo();
-	float currentDistance = 0;
-	float nearestDistance = FLT_MAX;
-	bool itemInPurgeZone = false;
-	bool chosenItemInPurgeZone = false;
-	Elite::Vector2 target{};
-
-
-	for (size_t i = 0; i < seenItems.size(); i++)
-	{
-		if (seenItems[i].Type == eItemType::FOOD)
-		{
-			itemInPurgeZone = false;
-
-			for (size_t i = 0; i < seenPurges.size(); i++)
-			{
-				if ((seenItems[i].Location - agentInfo.Position).MagnitudeSquared() <
-					(seenPurges[i].Radius * seenPurges[i].Radius))
-				{
-					itemInPurgeZone = true;
-					break;
-				}
-			}
-
-			currentDistance = (seenItems[i].Location - agentInfo.Position).MagnitudeSquared();
-
-			if (currentDistance < nearestDistance || (!itemInPurgeZone && chosenItemInPurgeZone))
-			{
-				chosenItemInPurgeZone = itemInPurgeZone;
-				target = seenItems[i].Location;
-				nearestDistance = currentDistance;
-			}
-		}
-	}
-
-	target = iFace->NavMesh_GetClosestPathPoint(target);
-	steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
-	iFace->Draw_Circle(target, 2, Elite::Vector3(0, 1, 0));
-
-	return true;
+	return WorldUtils::GoToNearestSeenItem(iFace,eItemType::FOOD, steeringOutput);
 }
 
 GoToNearestSeenGun::GoToNearestSeenGun()
@@ -128,55 +78,8 @@ GoToNearestSeenGun::GoToNearestSeenGun()
 bool GoToNearestSeenGun::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
-	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
+	return WorldUtils::GoToNearestSeenItem(iFace, eItemType::PISTOL, steeringOutput,eItemType::SHOTGUN);
 
-
-
-	if (seenItems.empty())
-	{
-		return false;
-	}
-
-	auto agentInfo = iFace->Agent_GetInfo();
-	float currentDistance = 0;
-	float nearestDistance = FLT_MAX;
-	bool itemInPurgeZone = false;
-	bool chosenItemInPurgeZone = false;
-	Elite::Vector2 target{};
-
-	for (size_t i = 0; i < seenItems.size(); i++)
-	{
-		if (seenItems[i].Type == eItemType::PISTOL || seenItems[i].Type == eItemType::SHOTGUN)
-		{
-			itemInPurgeZone = false;
-
-			for (size_t i = 0; i < seenPurges.size(); i++)
-			{
-				if ((seenItems[i].Location - agentInfo.Position).MagnitudeSquared() <
-					(seenPurges[i].Radius * seenPurges[i].Radius))
-				{
-					itemInPurgeZone = true;
-					break;
-				}
-			}
-
-			currentDistance = (seenItems[i].Location - agentInfo.Position).MagnitudeSquared();
-
-			if (currentDistance < nearestDistance || (!itemInPurgeZone && chosenItemInPurgeZone))
-			{
-				chosenItemInPurgeZone = itemInPurgeZone;
-				target = seenItems[i].Location;
-				nearestDistance = currentDistance;
-			}
-		}
-	}
-
-	target = iFace->NavMesh_GetClosestPathPoint(target);
-	steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
-	iFace->Draw_Circle(target, 2, Elite::Vector3(0, 1, 0));
-
-	return true;
 }
 
 GoToNearestSeenMedKit::GoToNearestSeenMedKit()
@@ -190,54 +93,8 @@ GoToNearestSeenMedKit::GoToNearestSeenMedKit()
 
 bool GoToNearestSeenMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
+	return WorldUtils::GoToNearestSeenItem(iFace, eItemType::MEDKIT, steeringOutput);
 
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
-	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
-
-	if (seenItems.empty())
-	{
-		return true;
-	}
-
-	auto agentInfo = iFace->Agent_GetInfo();
-	float currentDistance = 0;
-	float nearestDistance = FLT_MAX;
-	bool itemInPurgeZone = false;
-	bool chosenItemInPurgeZone = false;
-	Elite::Vector2 target{};
-
-	for (size_t i = 0; i < seenItems.size(); i++)
-	{
-		if (seenItems[i].Type == eItemType::MEDKIT)
-		{
-			itemInPurgeZone = false;
-
-			for (size_t i = 0; i < seenPurges.size(); i++)
-			{
-				if ((seenItems[i].Location - agentInfo.Position).MagnitudeSquared() <
-					(seenPurges[i].Radius * seenPurges[i].Radius))
-				{
-					itemInPurgeZone = true;
-					break;
-				}
-			}
-
-			currentDistance = (seenItems[i].Location - agentInfo.Position).MagnitudeSquared();
-
-			if (currentDistance < nearestDistance || (!itemInPurgeZone && chosenItemInPurgeZone))
-			{
-				chosenItemInPurgeZone = itemInPurgeZone;
-				target = seenItems[i].Location;
-				nearestDistance = currentDistance;
-			}
-		}
-	}
-
-	target = iFace->NavMesh_GetClosestPathPoint(target);
-	steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
-	iFace->Draw_Circle(target, 2, Elite::Vector3(0, 1, 0));
-
-	return true;
 }
 
 LeaveHouse::LeaveHouse()
@@ -444,6 +301,7 @@ bool ShootEnemyInView::Execute(float elapsedSec, SteeringPlugin_Output& steering
 	ItemInfo currentItem{};
 	int slotToUse{ -1 };
 
+
 	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
 	{
 		if (iFace->Inventory_GetItem(i, currentItem))
@@ -464,8 +322,7 @@ bool ShootEnemyInView::Execute(float elapsedSec, SteeringPlugin_Output& steering
 	bool canShootPistol{ currentItem.Type == eItemType::PISTOL && abs(chosenDelta) <= Elite::ToRadians(m_AcceptableRangeToShootIfPistol) };
 	bool canShootShotgun{ currentItem.Type == eItemType::SHOTGUN && abs(chosenDelta) <= Elite::ToRadians(m_AcceptableRangeToShootIfShotGun) };
 
-	if (slotToUse >= 0 &&
-		(canShootPistol || canShootShotgun))
+	if (slotToUse >= 0 && (canShootPistol || canShootShotgun))
 	{
 		iFace->Inventory_UseItem(slotToUse);
 	}
@@ -573,12 +430,6 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 	
 	// --- Flashy Debug Additions ---
 	float time = elapsedSec; // assumes world gives time
-
-
-
-
-	// Agent center pulsating aura
-
 	
 	// Velocity direction preview (cyan arrow)
 	Elite::Vector2 forward = iFace->Agent_GetInfo().LinearVelocity.GetNormalized();
@@ -594,7 +445,6 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 
 
 	iFace->Draw_Direction(m_WanderPos, iFace->Agent_GetInfo().Position,1000.f, Elite::Vector3(1, 0, 0));
-	// --- Your Original Code ---
 	steeringOutput.AutoOrient = false;
 	auto worldInfo = iFace->World_GetInfo();
 	auto agent = iFace->Agent_GetInfo();

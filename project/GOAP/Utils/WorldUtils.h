@@ -39,7 +39,62 @@ public:
 		return -1;
 	}
 
+	static bool GoToNearestSeenItem(IExamInterface* iFace, eItemType type,SteeringPlugin_Output & steeringOutput, eItemType type2 = eItemType::_LAST)
+	{
 
+		std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
+		std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
+
+		if (seenItems.empty())
+		{
+			return true;
+		}
+
+		auto agentInfo = iFace->Agent_GetInfo();
+		float currentDistance = 0;
+		float nearestDistance = FLT_MAX;
+		bool itemInPurgeZone = false;
+		bool chosenItemInPurgeZone = false;
+		Elite::Vector2 target{};
+
+		for (size_t i = 0; i < seenItems.size(); i++)
+		{
+
+
+
+			if (seenItems[i].Type == type || seenItems[i].Type == type2)
+			{
+				itemInPurgeZone = false;
+
+				for (size_t i = 0; i < seenPurges.size(); i++)
+				{
+					if ((seenItems[i].Location - agentInfo.Position).MagnitudeSquared() <
+						(seenPurges[i].Radius * seenPurges[i].Radius))
+					{
+						itemInPurgeZone = true;
+						break;
+					}
+				}
+
+				currentDistance = (seenItems[i].Location - agentInfo.Position).MagnitudeSquared();
+
+				if (currentDistance < nearestDistance || (!itemInPurgeZone && chosenItemInPurgeZone))
+				{
+					chosenItemInPurgeZone = itemInPurgeZone;
+					target = seenItems[i].Location;
+					nearestDistance = currentDistance;
+				}
+			}
+		}
+
+		target = iFace->NavMesh_GetClosestPathPoint(target);
+		steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
+		iFace->Draw_Circle(target, 2, Elite::Vector3(0, 1, 0));
+
+		return true;
+
+
+	}
 
 
 	static bool InventoryContains(IExamInterface* iFace, eItemType type, int minValue = 0)
