@@ -8,6 +8,40 @@ class IExamInterface;
 class WorldUtils
 {
 public:
+
+	static const UINT m_StartWeaponSlot{ 0 };
+	static const UINT m_EndWeaponSlot{ 1 };
+	static const int FoodSloT = 4;
+	static const int  m_MinAcceptedBulletCount{ 30 };
+
+	static const int m_StartMedKitInvSlot{ 2 };
+	static const int m_LastMedKitInvSlot{ 3 };
+
+
+	static int GetMedKitSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace)
+	{
+
+		ItemInfo currentItem{};
+
+		for (UINT i = m_StartMedKitInvSlot; i <= m_LastMedKitInvSlot; i++)
+		{
+			if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::MEDKIT)
+			{ //already a med kit there 
+				continue;
+			}
+			else
+			{
+				iFace->Inventory_RemoveItem(i);
+				return i;
+			}
+
+		}
+		return -1;
+	}
+
+
+
+
 	static bool InventoryContains(IExamInterface* iFace, eItemType type, int minValue = 0)
 	{
 		ItemInfo item{};
@@ -19,9 +53,206 @@ public:
 		return false;
 	}
 
-	static int CountItems(IExamInterface* iFace, eItemType type)
+	static int GetShotgunSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace)
 	{
 
+
+
+		ItemInfo currentItem{};
+
+		for (UINT i = m_StartWeaponSlot; i <= m_EndWeaponSlot; i++)
+		{
+			if (iFace->Inventory_GetItem(i, currentItem))
+			{
+				if (currentItem.Value < m_MinAcceptedBulletCount && incomingItem.Value > currentItem.Value)
+				{
+					iFace->Inventory_RemoveItem(i);
+					return i;
+				}
+			}
+			else
+			{
+				// nothing on this slot 
+				return i;
+			}
+
+		}
+		return -1;
+
+
+
+	}
+
+
+	static int GetPistolSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace)
+	{
+
+		ItemInfo currentItem{};
+
+		for (UINT i = m_StartWeaponSlot; i <= m_EndWeaponSlot; i++)
+		{
+			if (iFace->Inventory_GetItem(i, currentItem))
+			{
+				if (currentItem.Type != eItemType::SHOTGUN && currentItem.Value < m_MinAcceptedBulletCount && incomingItem.Value > currentItem.Value)
+				{
+					iFace->Inventory_RemoveItem(i);
+					return i;
+				}
+			}
+			else
+			{
+				return i;
+			}
+
+		}
+		return -1;
+	}
+
+
+	static bool PickUpItem(IExamInterface* iFace)
+	{
+
+		std::vector<ItemInfo> itemInfos = iFace->GetItemsInFOV();
+
+		ItemInfo currentItem{};
+		bool pickedUp = false;
+		int selectedIndex{ 0 };
+
+		for (const auto& itemInfo : itemInfos)
+		{
+			if ((itemInfo.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
+			{
+
+				switch (itemInfo.Type)
+				{
+				case eItemType::FOOD:
+
+					//if my food slot is empty  grab it 
+					if (!iFace->Inventory_GetItem(FoodSloT, currentItem))
+					{
+						iFace->GrabItem(itemInfo);
+						iFace->Inventory_AddItem(FoodSloT, itemInfo);
+						pickedUp = true;
+					}
+
+					break;
+
+				case eItemType::MEDKIT:
+
+					selectedIndex = GetMedKitSelectedInventoryIndex(itemInfo, iFace);
+
+					if (selectedIndex >= 0) //was picked is succesf
+					{
+
+						pickedUp = true;
+
+						iFace->GrabItem(itemInfo);
+
+						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+
+						break;
+
+				case eItemType::PISTOL:
+
+					selectedIndex = GetPistolSelectedInventoryIndex(itemInfo, iFace);
+
+					if (selectedIndex >= 0) {
+
+						pickedUp = true;
+						iFace->GrabItem(itemInfo);
+						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+					}
+
+
+					break;
+
+
+				case eItemType::SHOTGUN:
+
+					selectedIndex = GetShotgunSelectedInventoryIndex(itemInfo, iFace);
+
+					if (selectedIndex >= 0) {
+
+						pickedUp = true;
+						iFace->GrabItem(itemInfo);
+						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+					}
+
+
+					break;
+
+				default:
+					break;
+					}
+
+					if (pickedUp)
+					{
+						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
+					}
+
+
+
+				}
+			}
+			return false;
+
+
+
+
+		}
+	}
+
+
+
+	static bool ConsumeItem(IExamInterface* iFace, eItemType type)
+	{
+
+		ItemInfo currentItem{};
+		auto agentInfo = iFace->Agent_GetInfo();
+
+
+		for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+		{
+			if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == type)
+			{
+				iFace->Inventory_UseItem(i);
+				iFace->Inventory_RemoveItem(i);
+
+				switch (type)
+				{
+				default:
+				case eItemType::MEDKIT:
+					agentInfo.Health += currentItem.Value;
+					IsAttributeHigherThanMax(agentInfo.Health);
+					break;
+				case eItemType::FOOD:
+					agentInfo.Energy += currentItem.Value;
+					IsAttributeHigherThanMax(agentInfo.Energy);
+					break;
+				}
+
+				return false;
+
+			}
+		}
+
+
+		return false;
+	}
+
+
+
+
+	static bool IsAttributeHigherThanMax(float AgentAttribute)
+	{
+		return AgentAttribute >= 10.f;
+
+	}
+
+
+
+	static int CountItems(IExamInterface* iFace, eItemType type)
+	{
 		int count = 0;
 		ItemInfo item{};
 		for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
@@ -33,13 +264,37 @@ public:
 	}
 
 
-	static bool NextToItem(IExamInterface* iFace, const std::vector<eItemType> & type)
+	static bool HasNumberOfItemsWithAcceptableValue(IExamInterface* iFace, const std::vector<eItemType>& types, int AcceptableItems, int acceptableValue)
 	{
 
+		ItemInfo itemReference;
+		int count = 0;
+
+		for (size_t i = 0; i < iFace->Inventory_GetCapacity(); ++i)
+		{
+			if (!iFace->Inventory_GetItem(i, itemReference))
+				continue;
+
+			if (std::find(types.begin(), types.end(), itemReference.Type) != types.end() &&
+				itemReference.Value >= acceptableValue)
+			{
+				++count;
+
+				if (count >= AcceptableItems)
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+
+	static bool NextToItem(IExamInterface* iFace, const std::vector<eItemType>& type)
+	{
 
 		std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
 
-		for (const ItemInfo & info : itemInfo)
+		for (const ItemInfo& info : itemInfo)
 		{
 			for (const eItemType& Item : type)
 			{
@@ -60,30 +315,30 @@ public:
 	}
 
 
-	static bool KnowsItemLocation(IExamInterface* iFace, const std::vector<eItemType> & type)
+	static bool KnowsItemLocation(IExamInterface* iFace, const std::vector<eItemType>& type)
 	{
 		std::vector<ItemInfo> itemInfo = WorldMemory::Instance()->GetAllItemsInMemory();
 
-	
-		for (const ItemInfo & info : itemInfo)
+
+		for (const ItemInfo& info : itemInfo)
 		{
-			for (const eItemType & Item : type)
+			for (const eItemType& Item : type)
 			{
 				if (info.Type == Item)
 				{
-				   return true;
+					return true;
 				}
 
 			}
 		}
 
 		return false;
-  
+
 	}
 
 
 
-	static float AddValueOfItem(IExamInterface* iFace,eItemType type)
+	static float AddValueOfItem(IExamInterface* iFace, eItemType type)
 	{
 
 
@@ -100,7 +355,7 @@ public:
 		}
 
 		return TotalValue;
-	
+
 
 	}
 
@@ -192,4 +447,6 @@ public:
 				return false;
 		return true;
 	}
+
+
 };

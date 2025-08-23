@@ -67,8 +67,8 @@ void SurvivalAgentPlugin::InitGameDebugParams(GameDebugParams& params)
 {
 	params.AutoFollowCam = true; 
 	params.RenderUI = true; 
-	params.SpawnEnemies = false; 
-	params.EnemyCount = 20; 
+	params.SpawnEnemies = true; 
+	params.EnemyCount = 100; 
 	params.GodMode = false; 
 	params.LevelFile = "GameLevel.gppl";
 	params.AutoGrabClosestItem = false;

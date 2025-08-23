@@ -6,53 +6,32 @@
 #include"../Memory/Memory.h"
 #include"../Utils/WorldUtils.h"
 
+
 ConsumeSavedFood::ConsumeSavedFood()
 {
-
 	SetName (typeid(this).name());
 
 	AddPrecondition(new HasSavedUpFood(true));  
 	AddEffect(new IsHungry(false));
-	
 
 }
 
 bool ConsumeSavedFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-	
+
 	auto agentInfo = iFace->Agent_GetInfo();
 
-	if (agentInfo.Energy >= m_MaxEnergy)
+	if (WorldUtils::IsAttributeHigherThanMax(agentInfo.Energy))
 	{
 		return false;
 	}
 
-	ItemInfo currentItem{};
+	return WorldUtils::ConsumeItem(iFace, eItemType::FOOD);
 
-	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
-	{
-		if (iFace->Inventory_GetItem(i, currentItem) &&
-			currentItem.Type == eItemType::FOOD)
-		{
-			agentInfo.Energy += currentItem.Value;
-			iFace->Inventory_UseItem(i);
-			iFace->Inventory_RemoveItem(i);
 
-			if (agentInfo.Energy >= m_MaxEnergy)
-			{
-				return false;
-			}
-		}
-	}
-
-	return false;
 }
-
-
-
 ConsumeSavedMedKit::ConsumeSavedMedKit()
 {
-
 	SetName(typeid(this).name());
 
 	AddPrecondition(new HasSavedUpMedKits(true));
@@ -62,48 +41,23 @@ ConsumeSavedMedKit::ConsumeSavedMedKit()
 
 bool ConsumeSavedMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-	auto agentInfo = iFace->Agent_GetInfo();
 
-	if (agentInfo.Health >= m_MaxHealth)
+	auto agentInfo = iFace->Agent_GetInfo();
+	if (WorldUtils::IsAttributeHigherThanMax(agentInfo.Health))
 	{
 		return false;
 	}
 
-	ItemInfo currentItem{};
+	return WorldUtils::ConsumeItem(iFace, eItemType::MEDKIT);
 
-	for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
-	{
-		if (iFace->Inventory_GetItem(i, currentItem) &&
-			currentItem.Type == eItemType::MEDKIT)
-		{
-			agentInfo.Health += currentItem.Value;
-			iFace->Inventory_UseItem(i);
-			iFace->Inventory_RemoveItem(i);
-
-			if (agentInfo.Health >= m_MaxHealth)
-			{
-				return false;
-			}
-		}
-	}
-
-	return false;
 }
 
 GoToNearestSeenFood::GoToNearestSeenFood()
 {
-
 	SetName(typeid(this).name());
-
-	AddPrecondition(new HasSavedUpFood(false));
-
 	AddPrecondition(new KnowsFoodLocation(true));
 	AddPrecondition(new NextToFood(false));
-
-
 	AddEffect(new NextToFood(true));
-
-	
 }
 
 bool GoToNearestSeenFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
@@ -242,7 +196,7 @@ bool GoToNearestSeenMedKit::Execute(float elapsedSec, SteeringPlugin_Output& ste
 
 	if (seenItems.empty())
 	{
-		return false;
+		return true;
 	}
 
 	auto agentInfo = iFace->Agent_GetInfo();
@@ -390,62 +344,14 @@ bool MoveIntoHouse::Execute(float elapsedSec, SteeringPlugin_Output& steeringOut
 
 PickupFood::PickupFood()
 {
-
-	//AddPrecondition(new HasSavedUpFood(false));
-
 	AddPrecondition(new NextToFood(true));
-
 	AddEffect(new HasSavedUpFood(true));
-
-
 	SetName(typeid(this).name());
 }
 
 bool PickupFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-	
-
-	bool HasFood = WorldUtils::InventoryContains(iFace, eItemType::FOOD);
-
-	if (HasFood)
-	{
-		return false;
-	}
-
-	std::vector<ItemInfo> itemInfos = iFace->GetItemsInFOV();
-
-	ItemInfo currentItem{};
-	bool pickedUp = false;
-
-	for (const auto& itemInfo : itemInfos)
-	{
-		if ((itemInfo.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
-		{
-			pickedUp = false;
-
-			switch (itemInfo.Type) {
-
-			case eItemType::FOOD:
-
-				if (!iFace->Inventory_GetItem(m_FoodSlot, currentItem))
-				{
-					iFace->GrabItem(itemInfo);
-					iFace->Inventory_AddItem(m_FoodSlot, itemInfo);
-					pickedUp = true;
-				}
-				break;
-
-			default:
-				break;
-			}
-
-			if (pickedUp)
-			{
-				WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
-			}
-		}
-	}
-	return false;
+	return WorldUtils::PickUpItem(iFace);
 }
 
 PickupWeapon::PickupWeapon()
@@ -457,117 +363,17 @@ PickupWeapon::PickupWeapon()
 
 	SetName(typeid(this).name());
 
-
-
-
-
 }
 
 bool PickupWeapon::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 	
-	std::vector<ItemInfo> itemInfos = iFace->GetItemsInFOV();
-
-	int selectedIndex = 0;
-	bool pickedUp = false;
-
-	for (const auto& itemInfo : itemInfos)
-	{
-		if ((itemInfo.Location - iFace->Agent_GetInfo().Position).Magnitude() < iFace->Agent_GetInfo().GrabRange)
-		{
-			pickedUp = false;
-
-			switch (itemInfo.Type) {
-
-			case eItemType::SHOTGUN:
-
-				selectedIndex = GetShotgunSelectedInventoryIndex(itemInfo, iFace);
-
-				if (selectedIndex >= 0) {
-
-					pickedUp = true;
-					iFace->GrabItem(itemInfo);
-					iFace->Inventory_AddItem(selectedIndex, itemInfo);
-				}
-				break;
-			case eItemType::PISTOL:
-
-				selectedIndex = GetPistolSelectedInventoryIndex(itemInfo, iFace);
-
-				if (selectedIndex >= 0) {
-
-					pickedUp = true;
-					iFace->GrabItem(itemInfo);
-					iFace->Inventory_AddItem(selectedIndex, itemInfo);
-				}
-				break;
-
-			default:
-				break;
-			}
-
-			if (pickedUp)
-			{
-				WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
-			}
-		}
-	}
-	return false;
+	return WorldUtils::PickUpItem(iFace);
 }
 
-int PickupWeapon::GetPistolSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace)
-{
-	
-	ItemInfo currentItem{};
-
-	for (UINT i = m_StartWeaponSlot; i <= m_EndWeaponSlot; i++)
-	{
-		if (iFace->Inventory_GetItem(i, currentItem))
-		{
-			if (currentItem.Type != eItemType::SHOTGUN &&
-				currentItem.Value < m_MinAcceptedBulletCount &&
-				incomingItem.Value > currentItem.Value)
-			{
-				iFace->Inventory_RemoveItem(i);
-				return i;
-			}
-		}
-		else
-		{
-			return i;
-		}
-
-	}
-	return -1;
-}
-
-int PickupWeapon::GetShotgunSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace)
-{
-
-	ItemInfo currentItem{};
 
 
 
-	///pick
-	for (UINT i = m_StartWeaponSlot; i <= m_EndWeaponSlot; i++)
-	{
-		if (iFace->Inventory_GetItem(i, currentItem))
-		{
-			if (currentItem.Value < m_MinAcceptedBulletCount &&
-				incomingItem.Value > currentItem.Value)
-			{
-				iFace->Inventory_RemoveItem(i);
-				return i;
-			}
-		}
-		else
-		{
-			return i;
-		}
-
-	}
-	return -1;
-}
 
 RunFromPurge::RunFromPurge()
 {
@@ -737,7 +543,7 @@ TurnReallyFast::TurnReallyFast()
 	AddPrecondition(new RecentlyBittenState(true));
 
 	AddEffect(new RecentlyBittenState(false));
-     SetName(typeid(this).name());
+    SetName(typeid(this).name());
 }
 
 bool TurnReallyFast::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
@@ -764,11 +570,35 @@ Wander::Wander()
 
 bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
+	
+	// --- Flashy Debug Additions ---
+	float time = elapsedSec; // assumes world gives time
+
+
+
+
+	// Agent center pulsating aura
+
+	
+	// Velocity direction preview (cyan arrow)
+	Elite::Vector2 forward = iFace->Agent_GetInfo().LinearVelocity.GetNormalized();
+
+
+	// Small crosshair on wander pos (red)
+	iFace->Draw_Direction(m_WanderPos, Elite::Vector2(6, 0), 1.f, Elite::Vector3(1, 0, 0));
+	iFace->Draw_Direction(m_WanderPos, Elite::Vector2(-6, 0), 1.f, Elite::Vector3(1, 0, 0));
+	iFace->Draw_Direction(m_WanderPos, Elite::Vector2(0, 6), 1.f, Elite::Vector3(1, 0, 0));
+	iFace->Draw_Direction(m_WanderPos, Elite::Vector2(0, -6), 1.f, Elite::Vector3(1, 0, 0));
+
+
+
+
+	iFace->Draw_Direction(m_WanderPos, iFace->Agent_GetInfo().Position,1000.f, Elite::Vector3(1, 0, 0));
+	// --- Your Original Code ---
 	steeringOutput.AutoOrient = false;
 	auto worldInfo = iFace->World_GetInfo();
 	auto agent = iFace->Agent_GetInfo();
 	auto agentPos = agent.Position;
-
 
 	bool outOfBounds =
 		agentPos.y > worldInfo.Dimensions.y / 2 ||
@@ -793,10 +623,43 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 	steeringOutput.LinearVelocity = (closestPathPoint - agentPos) * iFace->Agent_GetInfo().MaxLinearSpeed;
 	steeringOutput.AngularVelocity = 360;
 
+
+
+	ChangeColor(elapsedSec);
+
+	iFace->Draw_Direction(iFace->Agent_GetInfo().Position, forward , 1000.f,*m_ColorPtr);
+	float pulse = (sin(time * 4.f) * 0.5f + 0.5f) * 4.f + 2.f;
+	iFace->Draw_Circle(iFace->Agent_GetInfo().Position, pulse, Elite::Vector3(0, 0.5f, 1));
 	return true;
 
 
 
+
+
+	
+
+}
+
+void Wander::ChangeColor(float elapsedSec)
+{
+	m_Timer += elapsedSec;
+
+
+	if (m_Timer >= m_flipTime)
+	{
+		m_Timer = 0;
+
+		if (m_ColorPtr == &m_Color1)
+		{
+			m_ColorPtr = &m_Color2;
+		}
+		else
+		{
+			m_ColorPtr = &m_Color1;
+
+		}
+
+	}
 }
 
 void Wander::NewRandomWanderPosInSpiral(const WorldInfo& worldPos)
@@ -897,6 +760,14 @@ bool Wander::NewWanderPosAwayFromPurges(const Elite::Vector2& targetPos)
 	return false;
 }
 
+void Wander::ToogleColor()
+{
+
+
+
+
+}
+
 
 PickupMedKit::PickupMedKit()
 {
@@ -922,21 +793,25 @@ bool PickupMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutp
 		{
 			pickedUp = false;
 
-			switch (itemInfo.Type) {
+			switch (itemInfo.Type)
+			{
 
 			case eItemType::MEDKIT:
 
 
 				selectedIndex = GetMedKitSelectedInventoryIndex(itemInfo, iFace);
 
-				if (selectedIndex >= 0) {
+				if (selectedIndex >= 0) //was picked is succesf
+				{
 
 					pickedUp = true;
 					iFace->GrabItem(itemInfo);
+
+
 					iFace->Inventory_AddItem(selectedIndex, itemInfo);
 				}
 				break;
-			default:
+			   default:
 				break;
 			}
 
@@ -957,7 +832,7 @@ int PickupMedKit::GetMedKitSelectedInventoryIndex(const ItemInfo& incomingItem, 
 	for (UINT i = m_StartMedKitInvSlot; i <= m_LastMedKitInvSlot; i++)
 	{
 		if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == eItemType::MEDKIT)
-		{
+		{ //already a med kit there 
 			continue;
 		}
 		else

@@ -112,6 +112,8 @@ public:
 	void Update(float elapsedSec, IExamInterface* iFace) override;
 
 private:
+
+	float CalculateHungerThreshhold(IExamInterface * iFace);
 	float m_HungerThresholdIfNoFoodInInventory = 5.f;
 	float m_MaxEnergyCapacity = 10.f;
 	float m_LowestHungerThreshold = 1.f;
@@ -242,6 +244,7 @@ public:
 private:
 	float m_DefaultGracePeriod = 2.f;
 	float m_GracePeriod = 0.f;
+	float m_Timer = 0.f;
 };
 
 class ZombieInViewState : public BaseWorldState {

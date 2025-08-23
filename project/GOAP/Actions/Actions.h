@@ -124,6 +124,8 @@ public:
 	Wander();
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
+	void ChangeColor(float elapsedSec);
+
 private:
 
 	void NewRandomWanderPosInSpiral(const WorldInfo& agentPos);
@@ -148,6 +150,19 @@ private:
 	const float m_DeltaInMultiplierPerTime{ 0.03 };
 	float m_CurrentDeltaInMultiplierPerTime{ m_DeltaInMultiplierPerTime };
 	float m_CurrentMultiplier{ m_MinWanderDistanceMultiplier };
+
+
+	Elite::Vector3 m_Color1{ Elite::Vector3(1, 0, 0)};
+	Elite::Vector3 m_Color2{ Elite::Vector3(0, 0, 1)};
+	Elite::Vector3  * m_ColorPtr{&m_Color1};
+	float m_Timer = 0.f;
+	float m_flipTime = 0.5f;
+
+
+	void ToogleColor();
+
+
+
 };
 
 
