@@ -225,7 +225,6 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
                     }
 
                 }
-
                 return true;
             }
 
