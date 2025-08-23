@@ -589,7 +589,6 @@ ShootEnemyInView::ShootEnemyInView()
 	AddPrecondition(new ZombieInViewState(true));
 	AddEffect(new ZombieInViewState(false));
 	SetName(typeid(this).name());
-	SetWeight (2.5f);
 }
 
 bool ShootEnemyInView::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)

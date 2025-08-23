@@ -8,13 +8,19 @@ Planner::Planner(std::vector<BaseWorldState*>* WorldStates):
 	m_pWorldStates{ WorldStates }, m_pGraph{ std::make_unique<Graph>()}
 {
 
+    InitializeGoalsAndActions();
+    CreateGraph();
+}
+
+void Planner::InitializeGoalsAndActions()
+{
     m_Actions =
     {
         new Wander(),
         new ConsumeSavedMedKit(),
         new ConsumeSavedFood(),
         new GoToNearestSeenGun(),
-        new GoToNearestSeenMedKit(), //can have a parameter .parameter 
+        new GoToNearestSeenMedKit(),
         new GoToNearestSeenFood(),
         new LeaveHouse(),
         new MoveIntoHouse(),
@@ -27,25 +33,20 @@ Planner::Planner(std::vector<BaseWorldState*>* WorldStates):
         new TurnReallyFast()
     };
 
-    //sort them as  apiority
 
     m_Goals =
     {
-        //this is how we wan to set alol the goals  not hungry has sabed up food etc 
-       new IsInPurgeZoneState(false),
-       new RecentlyBittenState(false),
-       new ZombieInViewState(false),
-       new IsHurtState(false),
-       new HasWeaponState(true),
-       new IsHungry(false),
-       new HasSavedWeaponsWithAcceptableAmmo(true), //
-       new IsLoadedWithMedKits(true), //
-       new HasSavedUpFood(true),
-       new HasVisitedAllSeenHouses(true)
+        new IsInPurgeZoneState(false),
+        new RecentlyBittenState(false),
+        new ZombieInViewState(false),
+        new IsHurtState(false),
+        new HasWeaponState(true),
+        new IsHungry(false),
+        new HasSavedWeaponsWithAcceptableAmmo(true),
+        new IsLoadedWithMedKits(true),
+        new HasSavedUpFood(true),
+        new HasVisitedAllSeenHouses(true)
     };
-
-    CreateGraph();
-
 }
 
 Planner::~Planner()
@@ -58,9 +59,9 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
     CurrentActionInfo currentActionInfo{};
 
-    for (auto * goal : m_Goals)  //my gols 
+    for (auto * goal : m_Goals) 
     {
-        for (auto* state : * m_pWorldStates)  ///how it is in the world rightm 
+        for (auto* state : * m_pWorldStates)
         {
             if (state->m_Name != goal->m_Name) continue;
 
@@ -71,22 +72,13 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
             }
             else
             {
-                //erase it form there 
 
                 m_AccomplishedGoals.erase(goal);
-                //
                 currentActionInfo = ChooseCurrentAction(goal);
-
-
-                //create s aseries fo graph nodes 
-
-                //check is goal is achibvable 
-                //actions = Dijkstra::FindPath(m_pGraph.get(), m_pGraph->GetNodeByIdx(0), m_pGraph->GetNodeByIdx(1));
 
                 if (currentActionInfo.IsValid())
                 {
                     currentGoal = goal;
-
 
                     if (m_CurrentGoal != goal->m_Name)
                     {
@@ -99,19 +91,15 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
                             std::cout << currentActionInfo.PathInfo->Path[i]->GetDescription() << '\n';
 
                         }
-
                         std::cout << "\n\n";
                     }
-                    break;  //try again until find a goal that can be acomplished 
-                    //oh we found a goal that can be accomplished 
+                    break; 
                 }
                 
             }
         }
         if (currentGoal) break;
     }
-
-    //no 
 
     if (!currentGoal && !m_CurrentGoal.empty())
     {
@@ -121,7 +109,6 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
     BaseAction * currentAction = nullptr;
 
-    //accomplsih the current goal we got the Actions saved 
 
     if (currentActionInfo.IsValid() &&
         currentGoal)
@@ -135,9 +122,7 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
             std::cout << "Current Action: " << actionDesc << '\n';
         }
 
-
         currentAction = currentActionInfo.CurrentAction;
-
         m_HadActionLastTick = true;
     }
     else
@@ -147,7 +132,7 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
             m_HadActionLastTick = false;
             std::cout << "No More Actions\n";
         }
-        currentAction = m_Actions.front(); // default: Wander
+        currentAction = m_Actions.front(); 
     }
 
     return currentAction->Execute(elapsedSec, steeringOutput, iFace);
@@ -156,7 +141,6 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
 void Planner::CreateGraph()
 { 
-    //
     for (BaseAction* action : m_Actions)
     {
         action->SetGraphNodeIndex(m_pGraph->AddNode());
@@ -164,16 +148,9 @@ void Planner::CreateGraph()
         m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->Weight = action->GetWeight();
     }
 
-    // If Action A produces an effect that satisfies a precondition for Action B, then Action B can logically follow Action A.
-
-  // Add a connection from A to B.
-   //this is done for every action 
-
-   // Interconnect actions by effects <-> preconditions
     for (BaseAction* action : m_Actions)
     {
 
-        //[reconditions 
         for (BaseWorldState* actionPreCondition : action->GetPreconditions())
         {
             for (BaseAction* otherAction : m_Actions) //loop one action with otehr action
@@ -232,20 +209,13 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
     std::vector<BaseAction *> startNodes{};
     std::vector<BaseAction *> endNodes{};
 
-    //  All possible Actions we can take 
-    //loop over that
 
     for (BaseAction * action : m_Actions)
     {
         bool conditionsMet = std::all_of(action->GetPreconditions().begin(), action->GetPreconditions().end(), [this](BaseWorldState  * pre)
             {
-
-                //check ecvey world state  
-
-
                 for (auto* world : *m_pWorldStates)
                 {
-                    //check precondiiton is on the same state as it is in the world state 
                     if (pre->m_Name == world->m_Name && pre->m_Predicate != world->m_Predicate)
                     {
                         return false;
@@ -256,19 +226,10 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
                 return true;
             }
 
-            //if preconditions 
         );
 
-
-        //if preconditionsMet is true, we can use this action immediately, so we connect it from the startNode:
-
-        if (conditionsMet)  // cost is still 0 
-            startNodes.push_back(action); //add connection
-
-        // Check if action achieves goal   //goal is on top 
-
-        //effect on world is same as world state //check isf any of it os effects 
-
+        if (conditionsMet)
+            startNodes.push_back(action); 
 
         bool achievesGoal = std::any_of(action->GetEffects().begin(), action->GetEffects().end(), [stateToAchieve](BaseWorldState * eff)
             {
@@ -276,12 +237,8 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
             }
         );
 
-
-        //dont a I have to meet the condition if 
-        if (achievesGoal)                 //
+        if (achievesGoal) 
             endNodes.push_back(action);
-
-
 
     }
  
