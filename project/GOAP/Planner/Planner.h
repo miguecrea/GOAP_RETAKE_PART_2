@@ -22,6 +22,7 @@ class Planner
 {
 public:
 	Planner(std::vector<BaseWorldState*>* WorldStates);
+	void InitializeGoalsAndActions();
 	~Planner();
 	Planner(const Planner&) = delete;
 	Planner(Planner&&) noexcept = delete;

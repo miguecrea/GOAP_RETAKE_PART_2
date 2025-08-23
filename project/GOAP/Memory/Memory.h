@@ -34,7 +34,8 @@ public:
 	bool RemoveItemFromMemory(const ItemInfo& item);
 	bool IsItemInMemory(const ItemInfo& item);
 	bool HasItems();
-	std::vector<ItemInfo> GetAllItems() { return Instance()->m_ItemsSeen; }
+
+	std::vector<ItemInfo> GetAllItemsInMemory() { return Instance()->m_ItemsSeen; }
 
 	size_t HousesToVisitSize();
 	UnvisitedHouse* GetClosestUnvisitedHouse(); //returns nullptr if no houses to visit

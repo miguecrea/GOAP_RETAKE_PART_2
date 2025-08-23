@@ -84,6 +84,9 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
                     {
                         m_CurrentGoal = goal->m_Name;
 
+
+
+
                         std::cout << "\n\n Current Goal: " << goal->m_Name << '\n' << "Action Plan:\n";
 
                         for (size_t i = 0; i < currentActionInfo.PathInfo->Path.size(); ++i)
@@ -153,7 +156,7 @@ void Planner::CreateGraph()
 
         for (BaseWorldState* actionPreCondition : action->GetPreconditions())
         {
-            for (BaseAction* otherAction : m_Actions) //loop one action with otehr action
+            for (BaseAction* otherAction : m_Actions)
             {
                 if (otherAction == action) continue;
 

@@ -85,8 +85,8 @@ private:
 	int GetShotgunSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace);
 	int m_MinAcceptedBulletCount{ 30 };
 
-	UINT m_StartWeaponSlot{ 0 };
-	UINT m_EndWeaponSlot{ 1 };
+	UINT m_StartWeaponSlot{0};
+	UINT m_EndWeaponSlot{1};
 };
 
 
@@ -100,9 +100,8 @@ private:
 
 	int GetMedKitSelectedInventoryIndex(const ItemInfo& incomingItem, IExamInterface* iFace);
 
-
-	int m_MaxHealth{ 10 }; //couldn't find maxHealth var but the UI in game says 10 so
-	int m_StartMedKitInvSlot{ 2 };
+	int m_MaxHealth{ 10 };
+	int m_StartMedKitInvSlot{2};
 	int m_LastMedKitInvSlot{ 3 };
 };
 

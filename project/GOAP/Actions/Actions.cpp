@@ -95,9 +95,12 @@ GoToNearestSeenFood::GoToNearestSeenFood()
 
 	SetName(typeid(this).name());
 
+	AddPrecondition(new HasSavedUpFood(false));
 
 	AddPrecondition(new KnowsFoodLocation(true));
 	AddPrecondition(new NextToFood(false));
+
+
 	AddEffect(new NextToFood(true));
 
 	
@@ -105,7 +108,10 @@ GoToNearestSeenFood::GoToNearestSeenFood()
 
 bool GoToNearestSeenFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItems();
+
+
+
+	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
 	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
 
 	if (seenItems.empty())
@@ -168,8 +174,10 @@ GoToNearestSeenGun::GoToNearestSeenGun()
 bool GoToNearestSeenGun::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItems();
+	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
 	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
+
+
 
 	if (seenItems.empty())
 	{
@@ -229,7 +237,7 @@ GoToNearestSeenMedKit::GoToNearestSeenMedKit()
 bool GoToNearestSeenMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 
-	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItems();
+	std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
 	std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
 
 	if (seenItems.empty())
@@ -383,7 +391,10 @@ bool MoveIntoHouse::Execute(float elapsedSec, SteeringPlugin_Output& steeringOut
 PickupFood::PickupFood()
 {
 
+	//AddPrecondition(new HasSavedUpFood(false));
+
 	AddPrecondition(new NextToFood(true));
+
 	AddEffect(new HasSavedUpFood(true));
 
 
@@ -393,6 +404,14 @@ PickupFood::PickupFood()
 bool PickupFood::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 	
+
+	bool HasFood = WorldUtils::InventoryContains(iFace, eItemType::FOOD);
+
+	if (HasFood)
+	{
+		return false;
+	}
+
 	std::vector<ItemInfo> itemInfos = iFace->GetItemsInFOV();
 
 	ItemInfo currentItem{};
@@ -433,9 +452,9 @@ PickupWeapon::PickupWeapon()
 {
 
 	AddPrecondition(new NextToWeapon(true));
-
 	AddEffect(new HasWeaponState(true));
 	AddEffect(new HasSavedWeaponsWithAcceptableAmmo(true));
+
 	SetName(typeid(this).name());
 
 
@@ -526,6 +545,7 @@ int PickupWeapon::GetShotgunSelectedInventoryIndex(const ItemInfo& incomingItem,
 {
 
 	ItemInfo currentItem{};
+
 
 
 	///pick
@@ -882,6 +902,7 @@ PickupMedKit::PickupMedKit()
 {
 
 	AddPrecondition(new NextToMedKit(true));
+
 	AddEffect(new HasSavedUpMedKits(true));
 	AddEffect(new IsLoadedWithMedKits(true));
 	SetName(typeid(this).name());
@@ -904,6 +925,8 @@ bool PickupMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutp
 			switch (itemInfo.Type) {
 
 			case eItemType::MEDKIT:
+
+
 				selectedIndex = GetMedKitSelectedInventoryIndex(itemInfo, iFace);
 
 				if (selectedIndex >= 0) {

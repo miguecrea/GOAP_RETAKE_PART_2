@@ -8,13 +8,12 @@ class IExamInterface;
 class WorldUtils
 {
 public:
-	// Inventory helpers
-	static bool InventoryContains(IExamInterface * iFace, eItemType type, int minValue = 0)
+	static bool InventoryContains(IExamInterface* iFace, eItemType type, int minValue = 0)
 	{
 		ItemInfo item{};
 		for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
 		{
-			if (iFace->Inventory_GetItem(i, item) && item.Type == type && item.Value >= minValue)
+			if (iFace->Inventory_GetItem(i, item) && item.Type == type)
 				return true;
 		}
 		return false;
@@ -32,6 +31,79 @@ public:
 		}
 		return count;
 	}
+
+
+	static bool NextToItem(IExamInterface* iFace, const std::vector<eItemType> & type)
+	{
+
+
+		std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
+
+		for (const ItemInfo & info : itemInfo)
+		{
+			for (const eItemType& Item : type)
+			{
+				if (info.Type == Item)
+				{
+					if ((info.Location - iFace->Agent_GetInfo().Position).Magnitude() <= iFace->Agent_GetInfo().GrabRange)
+					{
+						return true;
+					}
+				}
+
+			}
+		}
+
+		return false;
+
+
+	}
+
+
+	static bool KnowsItemLocation(IExamInterface* iFace, const std::vector<eItemType> & type)
+	{
+		std::vector<ItemInfo> itemInfo = WorldMemory::Instance()->GetAllItemsInMemory();
+
+	
+		for (const ItemInfo & info : itemInfo)
+		{
+			for (const eItemType & Item : type)
+			{
+				if (info.Type == Item)
+				{
+				   return true;
+				}
+
+			}
+		}
+
+		return false;
+  
+	}
+
+
+
+	static float AddValueOfItem(IExamInterface* iFace,eItemType type)
+	{
+
+
+		ItemInfo currentItem{};
+
+		float TotalValue{ 0.f };
+
+		for (UINT i = 0; i < iFace->Inventory_GetCapacity(); i++)
+		{
+			if (iFace->Inventory_GetItem(i, currentItem) && currentItem.Type == type)
+			{
+				TotalValue += currentItem.Value;
+			}
+		}
+
+		return TotalValue;
+	
+
+	}
+
 	static int CountItemsWithValue(IExamInterface* iFace, eItemType type, int minValue)
 	{
 
@@ -47,7 +119,7 @@ public:
 	}
 
 
-	static bool HasOpenSlot(IExamInterface * iFace)
+	static bool HasOpenSlot(IExamInterface* iFace)
 	{
 
 		ItemInfo item{};
@@ -60,14 +132,14 @@ public:
 		return false;
 	}
 
-	static int GetFirstOpenSlot(IExamInterface * iFace)
+	static int GetFirstOpenSlot(IExamInterface* iFace)
 	{
 
 		ItemInfo item{};
 
 		for (UINT InventoryIndex = 0; InventoryIndex < iFace->Inventory_GetCapacity(); InventoryIndex++)
 		{
-			if (!iFace->Inventory_GetItem(InventoryIndex,item))
+			if (!iFace->Inventory_GetItem(InventoryIndex, item))
 			{
 				return InventoryIndex;
 			}
