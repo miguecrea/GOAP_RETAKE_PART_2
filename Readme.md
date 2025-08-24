@@ -5,6 +5,7 @@
 
 
 Miguel Angel Lozano "https://github.com/miguecrea/GOAP_RETAKE_PART_2"
+
 Miguel Angel Lozano "https://github.com/miguecrea/GOAP_Retake"
 
 I used two repos for this project because  on the first one for some reason I could not use neither the debug nor the release so I just cloned 
@@ -80,5 +81,6 @@ The planner automatically finds the best sequence of actions (a plan) to reach a
 - `AttackEnemy` (has weapon → enemy dead)  
 
 **Generated Plan:**  
+
 
 
