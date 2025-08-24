@@ -1,5 +1,11 @@
 
+
+
 # 🎯 Goal-Oriented Action Planning (GOAP) System
+
+
+Miguel Angel Lozano "https://github.com/miguecrea/GOAP_RETAKE_PART_2"
+
 
 This project implements a **GOAP (Goal-Oriented Action Planning)** framework for intelligent agents in games.  
 GOAP allows AI characters to dynamically **plan sequences of actions** to achieve goals, instead of following hardcoded scripts.  
@@ -70,3 +76,4 @@ The planner automatically finds the best sequence of actions (a plan) to reach a
 - `AttackEnemy` (has weapon → enemy dead)  
 
 **Generated Plan:**  
+
