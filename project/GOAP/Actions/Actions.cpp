@@ -465,6 +465,8 @@ bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IE
 		NewIncrementalWanderPosInSpiral(worldInfo);
 	}
 
+
+
 	auto closestPathPoint = iFace->NavMesh_GetClosestPathPoint(m_WanderPos);
 
 	if (NewWanderPosAwayFromPurges(closestPathPoint))

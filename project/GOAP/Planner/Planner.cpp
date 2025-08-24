@@ -253,7 +253,6 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
             auto & currentPair = m_StartEndNodeString_To_Path.find(currentKey);
 
             if (currentPair != m_StartEndNodeString_To_Path.end()) 
-            if (currentPair != m_StartEndNodeString_To_Path.end()) 
             {
                 if (currentPair->second.TotalPathCost < currentHighestValue)  
                 {
