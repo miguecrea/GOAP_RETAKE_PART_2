@@ -20,7 +20,7 @@ void WorldMemory::Destroy()
 	m_Instance = nullptr;
 }
 
-bool WorldMemory::AddHouseToMemory(const HouseInfo& hi)
+bool WorldMemory::AddHouseToMemory(const HouseInfo & hi)
 {
 	if (IsHouseInMemory(hi)) return false;
 
@@ -29,19 +29,16 @@ bool WorldMemory::AddHouseToMemory(const HouseInfo& hi)
 	return true;
 }
 
-bool WorldMemory::IsHouseInMemory(const HouseInfo& hi)
+bool WorldMemory::IsHouseInMemory(const HouseInfo & hi)
 {
+
 	if (hi.Size == Elite::Vector2{ 0,0 }) return true; //Invalid house
 
-	for (const auto & visitedHouse : m_HousesSeen)
+	for (const auto & seenHouse : m_HousesSeen)
 	{
-		if ((visitedHouse.Center - hi.Center).Magnitude() < 1)	return true;
+		if ((seenHouse.Center - hi.Center).Magnitude() < 1)	return true;
 	}
 	return false;
-
-
-
-
 }
 
 void WorldMemory::MarkHouseAsVisited(const HouseInfo& hi)

@@ -36,7 +36,6 @@ private:
 
 	struct PathInfo
 	{
-
 		float TotalPathCost{};
 		std::vector<GraphNode*> Path;
 
@@ -69,6 +68,7 @@ private:
 
 	
 	//Just for debug purposes --> all I really need is total path cost
+
 	std::unordered_map<std::string, PathInfo> m_StartEndNodeString_To_Path;
 
 	

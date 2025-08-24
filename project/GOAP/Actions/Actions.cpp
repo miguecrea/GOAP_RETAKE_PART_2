@@ -275,6 +275,7 @@ ShootEnemyInView::ShootEnemyInView()
 	AddPrecondition(new ZombieInViewState(true));
 	AddEffect(new ZombieInViewState(false));
 	SetName(typeid(this).name());
+	SetWeight(0.5f);
 }
 
 bool ShootEnemyInView::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
@@ -432,8 +433,7 @@ Wander::Wander()
 bool Wander::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace)
 {
 	
-	// --- Flashy Debug Additions ---
-	float time = elapsedSec; // assumes world gives time
+	float time = elapsedSec; 
 	
 	// Velocity direction preview (cyan arrow)
 	Elite::Vector2 forward = iFace->Agent_GetInfo().LinearVelocity.GetNormalized();

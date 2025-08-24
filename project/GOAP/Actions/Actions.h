@@ -10,7 +10,6 @@ public:
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
 private:
-	int m_MaxEnergy = 10;
 };
 
 class ConsumeSavedMedKit final : public BaseAction
@@ -20,7 +19,6 @@ public:
 	bool Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput, IExamInterface* iFace) override;
 
 private:
-	int m_MaxHealth = 10;
 };
 
 
