@@ -82,5 +82,21 @@ The planner automatically finds the best sequence of actions (a plan) to reach a
 
 **Generated Plan:**  
 
+https://www.youtube.com/watch?v=qaIF0iaDWRQ&t=59s
+
+https://www.youtube.com/watch?v=DF4dxwqfF1k
+
+https://medium.com/@vedantchaudhari/goal-oriented-action-planning-34035ed40d0b
+
+https://www.youtube.com/watch?v=gm7K68663rA
+
+https://www.geeksforgeeks.org/dsa/introduction-to-dijkstras-shortest-path-algorithm/
+
+https://www.geeksforgeeks.org/dsa/difference-between-dijkstras-algorithm-and-a-search-algorithm/
+
+https://www.youtube.com/watch?v=jUSrVF8mve4
+
+
+
 
 
