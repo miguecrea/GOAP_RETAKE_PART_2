@@ -45,6 +45,7 @@ public:
 		std::vector<ItemInfo> seenItems = WorldMemory::Instance()->GetAllItemsInMemory();
 		std::vector<PurgeZoneInfo> seenPurges = WorldMemory::Instance()->GetAllSeenPurges();
 
+
 		if (seenItems.empty())
 		{
 			return true;
@@ -89,6 +90,8 @@ public:
 
 		target = iFace->NavMesh_GetClosestPathPoint(target);
 		steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
+		steeringOutput.AngularVelocity = 360.f;
+		steeringOutput.AutoOrient = false;
 		iFace->Draw_Circle(target, 2, Elite::Vector3(0, 1, 0));
 
 		return true;
@@ -185,9 +188,11 @@ public:
 					//if my food slot is empty  grab it 
 					if (!iFace->Inventory_GetItem(FoodSloT, currentItem))
 					{
+						pickedUp = true;
 						iFace->GrabItem(itemInfo);
 						iFace->Inventory_AddItem(FoodSloT, itemInfo);
-						pickedUp = true;
+						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
+
 					}
 
 					break;
@@ -204,6 +209,8 @@ public:
 						iFace->GrabItem(itemInfo);
 
 						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
+
 
 						break;
 
@@ -216,6 +223,8 @@ public:
 						pickedUp = true;
 						iFace->GrabItem(itemInfo);
 						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
+
 					}
 
 
@@ -231,6 +240,8 @@ public:
 						pickedUp = true;
 						iFace->GrabItem(itemInfo);
 						iFace->Inventory_AddItem(selectedIndex, itemInfo);
+						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
+
 					}
 
 
@@ -240,14 +251,10 @@ public:
 					break;
 					}
 
-					if (pickedUp)
-					{
-						WorldMemory::Instance()->RemoveItemFromMemory(itemInfo);
-					}
-
 
 
 				}
+
 			}
 			return false;
 
@@ -344,14 +351,14 @@ public:
 	}
 
 
-	static bool NextToItem(IExamInterface* iFace, const std::vector<eItemType>& type)
+	static bool NextToItem(IExamInterface* iFace, const std::vector<eItemType> & type)
 	{
 
 		std::vector<ItemInfo> itemInfo = iFace->GetItemsInFOV();
 
 		for (const ItemInfo& info : itemInfo)
 		{
-			for (const eItemType& Item : type)
+			for (const eItemType & Item : type)
 			{
 				if (info.Type == Item)
 				{
@@ -385,6 +392,34 @@ public:
 				}
 
 			}
+		}
+
+		return false;
+
+	}
+
+	static bool IsInPurgeZoneState(IExamInterface * iFace)
+	{
+
+		std::vector<PurgeZoneInfo> purgeZonesInfo = iFace->GetPurgeZonesInFOV();
+
+		for (const auto& purgeZone : purgeZonesInfo)
+		{
+			WorldMemory::Instance()->AddPurgeToMemory(purgeZone);
+		}
+
+		auto agentInfo = iFace->Agent_GetInfo();
+
+		purgeZonesInfo = WorldMemory::Instance()->GetAllSeenPurges();
+
+		for (auto& seenPurge : purgeZonesInfo)
+		{
+			if ((agentInfo.Position - seenPurge.Center).Magnitude() < (seenPurge.Radius + 5))
+			{
+				return true;
+				break;
+			}
+
 		}
 
 		return false;

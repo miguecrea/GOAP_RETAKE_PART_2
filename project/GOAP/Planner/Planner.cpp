@@ -74,17 +74,18 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
             {
 
                 m_AccomplishedGoals.erase(goal);
+
+
+                //vector of actions
                 currentActionInfo = ChooseCurrentAction(goal);
 
-                if (currentActionInfo.IsValid())
+                if (currentActionInfo.IsValid())  //  path is valid // it can be ac
                 {
                     currentGoal = goal;
 
                     if (m_CurrentGoal != goal->m_Name)
                     {
                         m_CurrentGoal = goal->m_Name;
-
-
 
 
                         std::cout << "\n\n Current Goal: " << goal->m_Name << '\n' << "Action Plan:\n";
@@ -104,6 +105,8 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
         if (currentGoal) break;
     }
 
+
+
     if (!currentGoal && !m_CurrentGoal.empty())
     {
         m_CurrentGoal.clear();
@@ -113,8 +116,7 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
     BaseAction * currentAction = nullptr;
 
 
-    if (currentActionInfo.IsValid() &&
-        currentGoal)
+    if (currentActionInfo.IsValid() && currentGoal)
     {
         const std::string& actionDesc = currentActionInfo.PathInfo->Path.front()->GetDescription();
 
@@ -144,17 +146,18 @@ bool Planner::CalculateAction(float elapsedSec, SteeringPlugin_Output& steeringO
 
 void Planner::CreateGraph()
 { 
-    for (BaseAction* action : m_Actions)
+    for (BaseAction * action : m_Actions)
     {
         action->SetGraphNodeIndex(m_pGraph->AddNode());
+
         m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->SetDescription(action->GetName());
         m_pGraph->GetNodeByIdx(action->GetGraphNodeIndex())->Weight = action->GetWeight();
     }
 
-    for (BaseAction* action : m_Actions)
+    for (BaseAction * action : m_Actions)
     {
 
-        for (BaseWorldState* actionPreCondition : action->GetPreconditions())
+        for (BaseWorldState * actionPreCondition : action->GetPreconditions())
         {
             for (BaseAction* otherAction : m_Actions)
             {
@@ -173,6 +176,10 @@ void Planner::CreateGraph()
         }
     }
 
+
+
+
+
     std::string currentKey{};
     float currentValue{};
     PathInfo currentPathInfo{};
@@ -181,17 +188,22 @@ void Planner::CreateGraph()
     {
         for (size_t otherIdx = 0; otherIdx < m_Actions.size(); otherIdx++)
         {
+            //different actions 
             currentKey = m_Actions[idx]->GetName() + m_Actions[otherIdx]->GetName();
+
+
+            //find a path between two action but it not it the same 
             currentPathInfo.Path = Dijkstra::FindPath(m_pGraph.get(), m_pGraph->GetNodeByIdx(idx), m_pGraph->GetNodeByIdx(otherIdx));
 
-            if (!currentPathInfo.Path.empty() && // path is not empty 
-                std::find(
-                    currentPathInfo.Path.begin(),
-                    currentPathInfo.Path.end(), 
-                    m_pGraph->GetNodeByIdx(otherIdx))
-                != currentPathInfo.Path.end()) // current path contains end node
+
+
+            //if there is a path betwen two Actions 
+
+            if (!currentPathInfo.Path.empty() && std::find(currentPathInfo.Path.begin(),currentPathInfo.Path.end(), m_pGraph->GetNodeByIdx(otherIdx))!= currentPathInfo.Path.end()) // current path contains end node
             {
+                //add all the weight  of each node 
                 currentValue = 0;
+
                 for (size_t i = 0; i < currentPathInfo.Path.size(); i++)
                 {
                     currentValue += currentPathInfo.Path[i]->Weight;
@@ -199,7 +211,11 @@ void Planner::CreateGraph()
 
                 currentPathInfo.TotalPathCost = currentValue;
 
+
                 m_StartEndNodeString_To_Path[currentKey] = currentPathInfo;
+
+                //two Actions together contain all of it is cost in a map 
+
             }
         }
     }
@@ -212,7 +228,6 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
     std::vector<BaseAction *> startNodes{};
     std::vector<BaseAction *> endNodes{};
 
-
     for (BaseAction * action : m_Actions)
     {
         bool conditionsMet = std::all_of(action->GetPreconditions().begin(), action->GetPreconditions().end(), [this](BaseWorldState  * pre)
@@ -223,16 +238,21 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
                     {
                         return false;
                     }
-
                 }
                 return true;
             }
-
         );
 
-        if (conditionsMet)
-            startNodes.push_back(action); 
+        //
 
+
+
+        if (conditionsMet)
+            startNodes.push_back(action);  //actions that can be used right now
+
+
+
+        // this action achieves the goal 
         bool achievesGoal = std::any_of(action->GetEffects().begin(), action->GetEffects().end(), [stateToAchieve](BaseWorldState * eff)
             {
                 return eff->m_Name == stateToAchieve->m_Name && eff->m_Predicate == stateToAchieve->m_Predicate;
@@ -242,11 +262,27 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
         if (achievesGoal) 
             endNodes.push_back(action);
 
+
+
     }
+
+
+
  
     std::string currentKey{};
     CurrentActionInfo currentActionInfo{};
     float currentHighestValue = INFINITY;
+
+
+
+    //Start Nodes 
+    //End Nodes achieve the goal 
+
+
+    //key 
+
+
+
     
     for (size_t startNodeIdx = 0; startNodeIdx < startNodes.size(); startNodeIdx++)
     {
@@ -254,14 +290,16 @@ Planner::CurrentActionInfo Planner::ChooseCurrentAction(BaseWorldState * stateTo
         {
             currentKey = startNodes[startNodeIdx]->GetName() + endNodes[endNodeIdx]->GetName();
 
-            auto& currentPair = m_StartEndNodeString_To_Path.find(currentKey);
+
+            //map   //found a key 
+            auto & currentPair = m_StartEndNodeString_To_Path.find(currentKey);
 
             if (currentPair != m_StartEndNodeString_To_Path.end()) // contains
             {
-                if (currentPair->second.TotalPathCost < currentHighestValue)
+                if (currentPair->second.TotalPathCost < currentHighestValue)  //find the path with lowest weight 
                 {
                     currentHighestValue = currentPair->second.TotalPathCost;
-                    currentActionInfo.CurrentAction = startNodes[startNodeIdx];
+                    currentActionInfo.CurrentAction = startNodes[startNodeIdx]; //
                     currentActionInfo.PathInfo = &currentPair->second;
                 }
             }

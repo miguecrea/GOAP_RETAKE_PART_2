@@ -109,7 +109,9 @@ void IsInPurgeZoneState::Update(float elapsedSec, IExamInterface* iFace)
 
 	purgeZonesInfo = WorldMemory::Instance()->GetAllSeenPurges();
 
-	for (auto& seenPurge : purgeZonesInfo)
+
+	//changed this 
+	for (auto & seenPurge : purgeZonesInfo)
 	{
 		if ((agentInfo.Position - seenPurge.Center).Magnitude() < (seenPurge.Radius + 5))
 		{

@@ -10,7 +10,8 @@ public:
 
 	BaseWorldState() = delete;
 	BaseWorldState(bool predicate);
-	virtual void Update(float elapsedSec, IExamInterface* iFace) = 0;
+
+	virtual void Update(float elapsedSec, IExamInterface * iFace) = 0;
 	bool m_Predicate;
 	std::string m_Name;
 };

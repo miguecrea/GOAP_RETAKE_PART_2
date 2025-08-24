@@ -34,17 +34,19 @@ public:
 
 private:
 
-	struct PathInfo {
+	struct PathInfo
+	{
 
 		float TotalPathCost{};
 		std::vector<GraphNode*> Path;
 
 	};
 
-	struct CurrentActionInfo {
+	struct CurrentActionInfo 
+	{
 
-		BaseAction* CurrentAction{ nullptr };
-		PathInfo* PathInfo{ nullptr };
+		BaseAction * CurrentAction{ nullptr };
+		PathInfo * PathInfo{ nullptr };
 
 		bool IsValid()const 
 		{
@@ -65,8 +67,8 @@ private:
 
 	std::unique_ptr<Graph> m_pGraph{};
 
-	//Just for debug purposes --> all I really need is total path cost
 	
+	//Just for debug purposes --> all I really need is total path cost
 	std::unordered_map<std::string, PathInfo> m_StartEndNodeString_To_Path;
 
 	

@@ -50,12 +50,16 @@ private:
 	WorldMemory();
 	static WorldMemory* m_Instance;
 
+	//memory 
+
 	std::vector<VisitedHouse> m_HousesVisited;
 	std::vector<UnvisitedHouse> m_HousesToVisit;
 	std::vector<HouseInfo> m_HousesSeen;
 	std::vector<SeenPurge> m_PurgesSeen;
-
 	std::vector<ItemInfo> m_ItemsSeen;
+
+
+
 
 	UnvisitedHouse m_LastClosestHouse;
 	int m_LastChosenHouseIndex = -1;

@@ -22,8 +22,8 @@ struct UnvisitedHouse
 		flip.y = -flip.y;
 
 		PointsToVisit.emplace_back(hi.Center - flip / 2.f);//top left
-		//PointsToVisit.emplace_back(hi.Center + size / 2.f);//top right
-		//PointsToVisit.emplace_back(hi.Center + flip / 2.f);//bottom right
+		PointsToVisit.emplace_back(hi.Center + size / 2.f);//top right
+		PointsToVisit.emplace_back(hi.Center + flip / 2.f);//bottom right
 		PointsToVisit.emplace_back(hi.Center - size / 2.f);//bottom left
 		PointsToVisit.emplace_back(hi.Center);
 	}

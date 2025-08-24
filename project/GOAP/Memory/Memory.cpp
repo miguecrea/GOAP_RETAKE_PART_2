@@ -7,7 +7,7 @@
 
 WorldMemory* WorldMemory::m_Instance = nullptr;
 
-WorldMemory* WorldMemory::Instance()
+WorldMemory * WorldMemory::Instance()
 {
 	if (m_Instance == nullptr)
 		m_Instance = new WorldMemory();
@@ -23,6 +23,7 @@ void WorldMemory::Destroy()
 bool WorldMemory::AddHouseToMemory(const HouseInfo& hi)
 {
 	if (IsHouseInMemory(hi)) return false;
+
 	m_HousesSeen.push_back(hi);
 	m_HousesToVisit.push_back(UnvisitedHouse{ hi });
 	return true;
@@ -32,15 +33,20 @@ bool WorldMemory::IsHouseInMemory(const HouseInfo& hi)
 {
 	if (hi.Size == Elite::Vector2{ 0,0 }) return true; //Invalid house
 
-	for (const auto& visitedHouse : m_HousesSeen)
+	for (const auto & visitedHouse : m_HousesSeen)
 	{
 		if ((visitedHouse.Center - hi.Center).Magnitude() < 1)	return true;
 	}
 	return false;
+
+
+
+
 }
 
 void WorldMemory::MarkHouseAsVisited(const HouseInfo& hi)
 {
+
 	if (!IsHouseVisited(hi))
 	{
 		AddHouseToMemory(hi);
@@ -157,6 +163,7 @@ void WorldMemory::Update(float elapsedSec, IExamInterface* iFace)
 		{
 			iFace->DestroyItem(item);
 		}
+
 		else if (AddItemToMemory(item))
 		{
 			switch (item.Type)
@@ -194,8 +201,10 @@ void WorldMemory::Update(float elapsedSec, IExamInterface* iFace)
 	{
 		if (m_HousesVisited[i].HasBeenForgotten(elapsedSec))
 		{
-			m_HousesVisited.erase(m_HousesVisited.begin() + i);
+			m_HousesVisited.erase(m_HousesVisited.begin() + i);  //delete house 
 
+
+			//
 			m_HousesToVisit.push_back(UnvisitedHouse{ m_HousesVisited[i].GetHouseInfo() });
 		}
 		else
@@ -231,6 +240,8 @@ void WorldMemory::Update(float elapsedSec, IExamInterface* iFace)
 			m_TimeSinceBitten = 0;
 		}
 	}
+
+
 
 	/*
 		Get Closest House that you haven't visited

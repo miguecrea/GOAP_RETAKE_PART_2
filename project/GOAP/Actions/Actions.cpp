@@ -55,6 +55,7 @@ bool ConsumeSavedMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeri
 GoToNearestSeenFood::GoToNearestSeenFood()
 {
 	SetName(typeid(this).name());
+	AddPrecondition(new HasSavedUpFood(false));
 	AddPrecondition(new KnowsFoodLocation(true));
 	AddPrecondition(new NextToFood(false));
 	AddEffect(new NextToFood(true));
@@ -110,9 +111,11 @@ bool LeaveHouse::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutput
 {
 
 	auto agentInfo = iFace->Agent_GetInfo();
+
 	auto dir = (Elite::Vector2(cosf(agentInfo.Orientation - static_cast<float>(M_PI / 2)), sinf(agentInfo.Orientation - static_cast<float>(M_PI / 2)))).GetNormalized() + agentInfo.Position;
 	auto target = iFace->NavMesh_GetClosestPathPoint(dir * 10);
 	iFace->Draw_Circle(dir * 10, 2, Elite::Vector3(0, 0, 1), 0.9f);
+
 	steeringOutput.LinearVelocity = (target - agentInfo.Position).GetNormalized() * agentInfo.MaxLinearSpeed;
 
 
@@ -414,6 +417,7 @@ bool TurnReallyFast::Execute(float elapsedSec, SteeringPlugin_Output& steeringOu
 
 	steeringOutput.AutoOrient = false;
 	steeringOutput.AngularVelocity = agent.FOV_Angle / elapsedSec;
+	//iFace->Agent_GetInfo().RunMode = true;
 	return true;
 }
 
@@ -653,11 +657,8 @@ bool PickupMedKit::Execute(float elapsedSec, SteeringPlugin_Output& steeringOutp
 
 				if (selectedIndex >= 0) //was picked is succesf
 				{
-
 					pickedUp = true;
 					iFace->GrabItem(itemInfo);
-
-
 					iFace->Inventory_AddItem(selectedIndex, itemInfo);
 				}
 				break;
